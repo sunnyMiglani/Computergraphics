@@ -16,20 +16,21 @@ using glm::mat3;
 
 /* ----------------------------------------------------------------------------*/
 /* GLOBAL VARIABLES                                                            */
-int t;
+int t; // moved to Update function as a static int
 
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
 
 void Update();
 void Draw(screen* screen);
+void Interpolate(float a, float b, vector<float>& result);
 
 int main( int argc, char* argv[] )
 {
-  
+
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   t = SDL_GetTicks();	/*Set start value for timer.*/
-  
+
   while( NoQuitMessageSDL() )
     {
       Draw(screen);
@@ -48,8 +49,8 @@ void Draw(screen* screen)
 {
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
-  
-  vec3 colour(1.0,0.0,0.0);
+
+  vec3 colour(0.1,0.2,0.7);
   for(int i=0; i<1000; i++)
     {
       uint32_t x = rand() % screen->width;
@@ -62,10 +63,24 @@ void Draw(screen* screen)
 void Update()
 {
   /* Compute frame time */
+  // static int t = SDL_GetTicks();
   int t2 = SDL_GetTicks();
   float dt = float(t2-t);
   t = t2;
   /*Good idea to remove this*/
   std::cout << "Render time: " << dt << " ms." << std::endl;
   /* Update variables*/
+}
+
+
+void Interpolate(float a, float b, vector<float>& result){
+  if(result.size() == 1){
+    return a;
+  }
+  int index = 0;
+  float range = (b-a);
+  float step = range/(result.size()-1);
+  for (float i = a; i <= b; i+=(step))}{
+    result[index] = i;
+  }
 }
