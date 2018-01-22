@@ -28,6 +28,12 @@ void Interpolate(float a, float b, vector<float>& result);
 int main( int argc, char* argv[] )
 {
 
+  vector<float> result(10);
+  Interpolate(5,14,result);
+  for(int i = 0; i < result.size(); ++i){
+    cout << result[i] << " ";
+  }
+
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   t = SDL_GetTicks();	/*Set start value for timer.*/
 
@@ -75,12 +81,18 @@ void Update()
 
 void Interpolate(float a, float b, vector<float>& result){
   if(result.size() == 1){
-    return a;
+    result[0] = a;
+    return;
   }
-  int index = 0;
   float range = (b-a);
   float step = range/(result.size()-1);
-  for (float i = a; i <= b; i+=(step))}{
-    result[index] = i;
+  float insertvalue = a
+  result[0] = a;
+  result[result.size()-1] = b;
+  for (float i = 1; i <= result.size() - 1; i++{
+    // Need to set insertValue as the next value to be put into result
+    insertvalue += step;
+    result[i] = insertvalue;
+
   }
 }
