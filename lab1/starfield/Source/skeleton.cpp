@@ -1,3 +1,4 @@
+ls
 #include <iostream>
 #include <glm/glm.hpp>
 #include <SDL.h>
@@ -29,6 +30,7 @@ int main( int argc, char* argv[] )
   
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   t = SDL_GetTicks();	/*Set start value for timer.*/
+<<<<<<< HEAD
   
   while( NoQuitMessageSDL() )
     {
@@ -36,6 +38,15 @@ int main( int argc, char* argv[] )
       Update();
       SDL_Renderframe(screen);
     }
+=======
+
+  // while( NoQuitMessageSDL() )
+  //   {
+  //     Draw(screen);
+  //     Update();
+  //     SDL_Renderframe(screen);
+  //   }
+>>>>>>> 89a7c3345dd34baa3bd44e34bc426b220faa33f2
 
   SDL_SaveImage( screen, "screenshot.bmp" );
 
@@ -69,3 +80,25 @@ void Update()
   std::cout << "Render time: " << dt << " ms." << std::endl;
   /* Update variables*/
 }
+<<<<<<< HEAD
+=======
+
+
+void Interpolate(float a, float b, vector<float>& result){
+  if(result.size() == 1){
+    result[0] = a;
+    return;
+  }
+  float range = (b-a);
+  float step = range/(result.size()-1);
+  float insertvalue = a;
+  result[0] = a;
+  result[result.size()-1] = b;
+  for (float i = 1; i <= result.size() - 1; i++){
+    // Need to set insertValue as the next value to be put into result
+    insertvalue += step;
+    result[i] = insertvalue;
+
+  }
+}
+>>>>>>> 89a7c3345dd34baa3bd44e34bc426b220faa33f2
