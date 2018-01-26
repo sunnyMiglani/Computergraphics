@@ -89,7 +89,7 @@ void Draw(screen* screen)
   for(int row = 0; row < SCREEN_HEIGHT; row++){
     Interpolate(leftSide[row], rightSide[row], screen_row);
     for(int col = 0; col < SCREEN_WIDTH; col++){
-      PutPixelSDL(screen, row, col, screen_row[col]);
+      PutPixelSDL(screen, col, row, screen_row[col]);
     }
   }
 }
