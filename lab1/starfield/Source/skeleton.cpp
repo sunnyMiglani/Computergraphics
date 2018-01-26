@@ -16,7 +16,7 @@ using glm::mat3;
 
 /* ----------------------------------------------------------------------------*/
 /* GLOBAL VARIABLES                                                            */
-int t; // moved to Update function as a static int
+int t;
 
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
@@ -45,12 +45,12 @@ int main( int argc, char* argv[] )
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   t = SDL_GetTicks();	/*Set start value for timer.*/
 
-  // while( NoQuitMessageSDL() )
-  //   {
-  //     Draw(screen);
-  //     Update();
-  //     SDL_Renderframe(screen);
-  //   }
+  while( NoQuitMessageSDL() )
+    {
+      Draw(screen);
+      Update();
+      SDL_Renderframe(screen);
+    }
 
   SDL_SaveImage( screen, "screenshot.bmp" );
 
@@ -64,7 +64,7 @@ void Draw(screen* screen)
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
 
-  vec3 colour(0.1,0.2,0.7);
+  vec3 colour(1.0,0.0,0.0);
   for(int i=0; i<1000; i++)
     {
       uint32_t x = rand() % screen->width;
@@ -77,7 +77,6 @@ void Draw(screen* screen)
 void Update()
 {
   /* Compute frame time */
-  // static int t = SDL_GetTicks();
   int t2 = SDL_GetTicks();
   float dt = float(t2-t);
   t = t2;
@@ -85,6 +84,7 @@ void Update()
   std::cout << "Render time: " << dt << " ms." << std::endl;
   /* Update variables*/
 }
+
 
 
 void Interpolate_f(float a, float b, vector<float>& result){
