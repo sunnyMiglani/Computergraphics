@@ -13,12 +13,11 @@ using glm::mat3;
 #define SCREEN_HEIGHT 256
 #define FULLSCREEN_MODE false
 #define f_length SCREEN_HEIGHT/2
-#define STAR_VELOCITY 2
-
+#define STAR_VELOCITY 0.2
 
 /* ----------------------------------------------------------------------------*/
 /* GLOBAL VARIABLES                                                            */
-int t;
+ int t;
 
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
@@ -31,13 +30,14 @@ void test_Interpolation();
 void DrawColour();
 void StarField();
 void init_stars(vector<vec3>& stars);
+void updateValues(vector<vec3>& stars, float dt);
 
 void test_Interpolation(){
   vector<vec3> result(4);
   vec3 a(1,4,9.2);
   vec3 b(4,1,9.8);
   Interpolate(a,b,result);
-  for(int i = 0; i < result.size(); ++i){
+  for(uint i = 0; i < result.size(); ++i){
     cout << "("
          << result[i].x <<","
          << result[i].y << ","
@@ -50,8 +50,6 @@ void test_Interpolation(){
 
 int main( int argc, char* argv[] )
 {
-
-
   vector<vec3> stars(1000);
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   t = SDL_GetTicks();	/*Set start value for timer.*/
@@ -70,34 +68,7 @@ int main( int argc, char* argv[] )
   return 0;
 }
 
-void DrawColour(){
-  screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
-  vec3 topLeft(1, 0, 0); //Red
-  vec3 topRight(0, 1, 0); //Green
-  vec3 bottomRight(0, 0, 1); //Blue
-  vec3 bottomLeft(1, 1, 0); //Yellow
 
-  vector<vec3> leftSide( SCREEN_HEIGHT );
-  vector<vec3> rightSide( SCREEN_HEIGHT );
-  Interpolate(topLeft, bottomLeft, leftSide);
-  Interpolate(topRight, bottomRight, rightSide);
-  vector<vec3> screen_row(SCREEN_WIDTH);
-
-
-  //vec3 colour(1.0,0.0,0.0);
-  // for(int i=0; i<1000; i++)
-  //   {
-  //     uint32_t x = rand() % screen->width;
-  //     uint32_t y = rand() % screen->height;
-  //     PutPixelSDL(screen, x, y, colour);
-  //   }
-  for(int row = 0; row < SCREEN_HEIGHT; row++){
-    Interpolate(leftSide[row], rightSide[row], screen_row);
-    for(int col = 0; col < SCREEN_WIDTH; col++){
-      PutPixelSDL(screen, col, row, screen_row[col]);
-    }
-  }
-}
 
 float getRandNumNeg(){
   float x = float(rand()/ float(RAND_MAX));
@@ -126,23 +97,31 @@ float getUValue(float x_val,float z_val){
 }
 
 float getVValue(float y_val, float z_val){
-  float ans = f_length * (y_val/z_val) + SCREEN_HEIGHT/2;
+  float ans = (f_length * (y_val/z_val)) + SCREEN_HEIGHT/2;
   // printf("%f is V\n",ans)
   return ans;
 }
 
-void updateZValues(vector<vec3>& stars, float dt){
+void updateValues(vector<vec3>& stars, float dt){
+  float velocity = 0.2;
   for(int i = 0; i < 1000; i++){
     float cur_val = stars[i].z;
-    float nxt_val = cur_val - (STAR_VELOCITY*dt);
-    if(nxt_val < 0){
-      nxt_val = 1;
+    if(cur_val < 0){printf("Shit. \n");
+  return;}
+    float nxt_val = cur_val - velocity * 3;
+    float temp = nxt_val;
+    if(nxt_val > 1){
+        nxt_val -= 1;
+        continue;
     }
-    else if(nxt_val > 1){
-      nxt_val = 0;
+    while(nxt_val <= 0){
+      nxt_val += 1;
     }
     stars[i].z = nxt_val;
+    printf("nxt_val : %f, new nxt_val : %f  and dt : %f \n",temp,nxt_val,dt);
   }
+
+  return;
 }
 
 void init_stars(vector<vec3>& stars){
@@ -164,8 +143,7 @@ void Draw(screen* screen, vector<vec3>& stars)
      {
        float u = getUValue(stars[i].x, stars[i].z);
        float v = getVValue(stars[i].y, stars[i].z);
-       //printf("%f, %f are X and Y \n",x,y );
-       PutPixelSDL(screen, u, v ,colour );
+       PutPixelSDL(screen, u, v ,colour);
      }
 }
 
@@ -181,13 +159,8 @@ void Update(vector<vec3>& stars)
   /*Good idea to remove this*/
   std::cout << "Render time: " << dt << " ms." << std::endl;
   /* Update variables*/
+  updateValues(stars, dt);
 
-/*  Equation for movement:
-    x_t = x_t-1
-    y_t = y_t-1
-    z_t = z_t-1 - v. dt
-  */
-  updateZValues(stars, dt);
 }
 
 
@@ -236,5 +209,34 @@ void Interpolate(vec3 a, vec3 b, vector<vec3>& result){
       temp.y = resultY[i];
       temp.z = resultZ[i];
       result[i] = temp;
+    }
+  }
+
+  void DrawColour(){
+    screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
+    vec3 topLeft(1, 0, 0); //Red
+    vec3 topRight(0, 1, 0); //Green
+    vec3 bottomRight(0, 0, 1); //Blue
+    vec3 bottomLeft(1, 1, 0); //Yellow
+
+    vector<vec3> leftSide( SCREEN_HEIGHT );
+    vector<vec3> rightSide( SCREEN_HEIGHT );
+    Interpolate(topLeft, bottomLeft, leftSide);
+    Interpolate(topRight, bottomRight, rightSide);
+    vector<vec3> screen_row(SCREEN_WIDTH);
+
+
+    //vec3 colour(1.0,0.0,0.0);
+    // for(int i=0; i<1000; i++)
+    //   {
+    //     uint32_t x = rand() % screen->width;
+    //     uint32_t y = rand() % screen->height;
+    //     PutPixelSDL(screen, x, y, colour);
+    //   }
+    for(int row = 0; row < SCREEN_HEIGHT; row++){
+      Interpolate(leftSide[row], rightSide[row], screen_row);
+      for(int col = 0; col < SCREEN_WIDTH; col++){
+        PutPixelSDL(screen, col, row, screen_row[col]);
+      }
     }
   }
