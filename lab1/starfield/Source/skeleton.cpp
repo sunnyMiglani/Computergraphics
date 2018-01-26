@@ -67,13 +67,31 @@ void Draw(screen* screen)
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
 
-  vec3 colour(1.0,0.0,0.0);
-  for(int i=0; i<1000; i++)
-    {
-      uint32_t x = rand() % screen->width;
-      uint32_t y = rand() % screen->height;
-      PutPixelSDL(screen, x, y, colour);
+  vec3 topLeft(1, 0, 0); //Red
+  vec3 topRight(0, 1, 0); //Green
+  vec3 bottomRight(0, 0, 1); //Blue
+  vec3 bottomLeft(1, 1, 0); //Yellow
+
+  vector<vec3> leftSide( SCREEN_HEIGHT );
+  vector<vec3> rightSide( SCREEN_HEIGHT );
+  Interpolate(topLeft, bottomLeft, leftSide);
+  Interpolate(topRight, bottomRight, rightSide);
+  vector<vec3> screen_row(SCREEN_WIDTH);
+
+
+  //vec3 colour(1.0,0.0,0.0);
+  // for(int i=0; i<1000; i++)
+  //   {
+  //     uint32_t x = rand() % screen->width;
+  //     uint32_t y = rand() % screen->height;
+  //     PutPixelSDL(screen, x, y, colour);
+  //   }
+  for(int row = 0; row < SCREEN_HEIGHT; row++){
+    Interpolate(leftSide[row], rightSide[row], screen_row);
+    for(int col = 0; col < SCREEN_WIDTH; col++){
+      PutPixelSDL(screen, row, col, screen_row[col]);
     }
+  }
 }
 
 /*Place updates of parameters here*/
