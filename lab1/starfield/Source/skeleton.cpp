@@ -13,6 +13,7 @@ using glm::mat3;
 #define SCREEN_HEIGHT 256
 #define FULLSCREEN_MODE false
 #define f_length SCREEN_HEIGHT/2
+#define STAR_VELOCITY 2
 
 
 /* ----------------------------------------------------------------------------*/
@@ -22,13 +23,14 @@ int t;
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
 
-void Update();
-void Draw(screen* screen);
+void Update(vector<vec3>& stars);
+void Draw(screen* screen, vector<vec3>& stars);
 void Interpolate_f(float a, float b, vector<float>& result);
 void Interpolate(vec3 a, vec3 b, vector<vec3>& result);
 void test_Interpolation();
 void DrawColour();
 void StarField();
+void init_stars(vector<vec3>& stars);
 
 void test_Interpolation(){
   vector<vec3> result(4);
@@ -37,7 +39,7 @@ void test_Interpolation(){
   Interpolate(a,b,result);
   for(int i = 0; i < result.size(); ++i){
     cout << "("
-         << result[i].x <<", "
+         << result[i].x <<","
          << result[i].y << ","
          << result[i].z << ")";
 
@@ -50,13 +52,15 @@ int main( int argc, char* argv[] )
 {
 
 
+  vector<vec3> stars(1000);
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   t = SDL_GetTicks();	/*Set start value for timer.*/
+  init_stars(stars);
 
   while( NoQuitMessageSDL() )
     {
-      Draw(screen);
-      Update();
+      Draw(screen,stars);
+      Update(stars);
       SDL_Renderframe(screen);
     }
 
@@ -67,8 +71,6 @@ int main( int argc, char* argv[] )
 }
 
 void DrawColour(){
-
-
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   vec3 topLeft(1, 0, 0); //Red
   vec3 topRight(0, 1, 0); //Green
@@ -105,53 +107,72 @@ float getRandNumNeg(){
   x-=1;
   //printf("X : %f",x);
   // printf("%f is returned by randNeg()\n",x);
+  if (x > 1 || x < -1){printf("RandNegFailed \n");}
   return x;
 
 }
 
 float getRandNum(){
   float x = float(rand()/ float(RAND_MAX));
+  if (x > 1 || x < 0){printf("###Rand Failed### \n");}
   // printf("%f is returned by rand()\n",x);
   return x;
 }
 
 float getUValue(float x_val,float z_val){
-  float ans = f_length * (x_val/z_val) + SCREEN_WIDTH/2;
+  float ans = (f_length * (x_val/z_val)) + SCREEN_WIDTH/2;
   // printf("%f is U\n",ans);
   return ans;
 }
 
 float getVValue(float y_val, float z_val){
   float ans = f_length * (y_val/z_val) + SCREEN_HEIGHT/2;
-  // printf("%f is V\n",ans);
+  // printf("%f is V\n",ans)
   return ans;
 }
 
-/*Place your drawing here*/
-void Draw(screen* screen)
-{
-    vector<vec3> stars(1000);
-
-    for(int i = 0 ; i < 1000; i++){
-        stars[i].x = getRandNumNeg();
-        stars[i].y = getRandNumNeg();
-        stars[i].z = getRandNum();
+void updateZValues(vector<vec3>& stars, float dt){
+  for(int i = 0; i < 1000; i++){
+    float cur_val = stars[i].z;
+    float nxt_val = cur_val - (STAR_VELOCITY*dt);
+    if(nxt_val < 0){
+      nxt_val = 1;
     }
-  /* Clear buffer */
+    else if(nxt_val > 1){
+      nxt_val = 0;
+    }
+    stars[i].z = nxt_val;
+  }
+}
 
-  vec3 colour(1.0,1,1);
+void init_stars(vector<vec3>& stars){
+  for(int i = 0 ; i < 1000; i++){
+      stars[i].x = getRandNumNeg();
+      stars[i].y = getRandNumNeg();
+      stars[i].z = getRandNum();
+  }
+}
+
+/*Place your drawing here*/
+void Draw(screen* screen, vector<vec3>& stars)
+{
+
+  /* Clear buffer */
+  vec3 colour(1,1,1);
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
    for(int i=0; i<1000; i++)
      {
-       float x = getUValue(stars[i].x, stars[i].y);
-       float y = getVValue(stars[i].y, stars[i].z);
+       float u = getUValue(stars[i].x, stars[i].z);
+       float v = getVValue(stars[i].y, stars[i].z);
        //printf("%f, %f are X and Y \n",x,y );
-       PutPixelSDL(screen, x, y,colour );
+       PutPixelSDL(screen, u, v ,colour );
      }
 }
 
+
+
 /*Place updates of parameters here*/
-void Update()
+void Update(vector<vec3>& stars)
 {
   /* Compute frame time */
   int t2 = SDL_GetTicks();
@@ -160,6 +181,13 @@ void Update()
   /*Good idea to remove this*/
   std::cout << "Render time: " << dt << " ms." << std::endl;
   /* Update variables*/
+
+/*  Equation for movement:
+    x_t = x_t-1
+    y_t = y_t-1
+    z_t = z_t-1 - v. dt
+  */
+  updateZValues(stars, dt);
 }
 
 
