@@ -1,4 +1,3 @@
-ls
 #include <iostream>
 #include <glm/glm.hpp>
 #include <SDL.h>
@@ -86,7 +85,7 @@ void Update()
 
 void Interpolate(float a, float b, vector<float>& result){
   if(result.size() == 1){
-    result[0] = a;
+    result[0] = (a+b)/2;
     return;
   }
   float range = (b-a);
