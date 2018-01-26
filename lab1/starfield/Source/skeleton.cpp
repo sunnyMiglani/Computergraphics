@@ -23,15 +23,23 @@ int t; // moved to Update function as a static int
 
 void Update();
 void Draw(screen* screen);
-void Interpolate(float a, float b, vector<float>& result);
+void Interpolate_f(float a, float b, vector<float>& result);
+void Interpolate(vec3 a, vec3 b, vector<vec3>& result);
 
 int main( int argc, char* argv[] )
 {
 
-  vector<float> result(10);
-  Interpolate(5,14,result);
+
+  vector<vec3> result(4);
+  vec3 a(1,4,9.2);
+  vec3 b(4,1,9.8);
+  Interpolate(a,b,result);
   for(int i = 0; i < result.size(); ++i){
-    cout << result[i] << " ";
+    cout << "("
+         << result[i].x <<", "
+         << result[i].y << ","
+         << result[i].z << ")";
+
   }
 
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
@@ -79,7 +87,7 @@ void Update()
 }
 
 
-void Interpolate(float a, float b, vector<float>& result){
+void Interpolate_f(float a, float b, vector<float>& result){
   if(result.size() == 1){
     result[0] = (a+b)/2;
     return;
@@ -96,3 +104,32 @@ void Interpolate(float a, float b, vector<float>& result){
 
   }
 }
+
+void Interpolate(vec3 a, vec3 b, vector<vec3>& result){
+    float a0 = a.x;
+    float a1 = a.y;
+    float a2 = a.z;
+
+    float b0 = b.x;
+    float b1 = b.y;
+    float b2 = b.z;
+
+    int size = result.size();
+
+    vector<float> resultX(size);
+    vector<float> resultY(size);
+    vector<float> resultZ(size);
+
+    Interpolate_f(a0,b0,resultX);
+    Interpolate_f(a1,b1,resultY);
+    Interpolate_f(a2,b2,resultZ);
+
+
+    for(int i = 0; i < size; i++){
+      vec3 temp;// = (resultX[i], resultY[i], resultZ[i]);
+      temp.x = resultX[i];
+      temp.y = resultY[i];
+      temp.z = resultZ[i];
+      result[i] = temp;
+    }
+  }
