@@ -25,11 +25,9 @@ void Update();
 void Draw(screen* screen);
 void Interpolate_f(float a, float b, vector<float>& result);
 void Interpolate(vec3 a, vec3 b, vector<vec3>& result);
+void test_Interpolation();
 
-int main( int argc, char* argv[] )
-{
-
-
+void test_Interpolation(){
   vector<vec3> result(4);
   vec3 a(1,4,9.2);
   vec3 b(4,1,9.8);
@@ -41,7 +39,12 @@ int main( int argc, char* argv[] )
          << result[i].z << ")";
 
   }
+}
 
+
+
+int main( int argc, char* argv[] )
+{
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   t = SDL_GetTicks();	/*Set start value for timer.*/
 
