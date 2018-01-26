@@ -12,6 +12,7 @@ using glm::mat3;
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 256
 #define FULLSCREEN_MODE false
+#define f_length SCREEN_HEIGHT/2
 
 
 /* ----------------------------------------------------------------------------*/
@@ -26,6 +27,8 @@ void Draw(screen* screen);
 void Interpolate_f(float a, float b, vector<float>& result);
 void Interpolate(vec3 a, vec3 b, vector<vec3>& result);
 void test_Interpolation();
+void DrawColour();
+void StarField();
 
 void test_Interpolation(){
   vector<vec3> result(4);
@@ -45,6 +48,8 @@ void test_Interpolation(){
 
 int main( int argc, char* argv[] )
 {
+
+
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   t = SDL_GetTicks();	/*Set start value for timer.*/
 
@@ -61,12 +66,10 @@ int main( int argc, char* argv[] )
   return 0;
 }
 
-/*Place your drawing here*/
-void Draw(screen* screen)
-{
-  /* Clear buffer */
-  memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
+void DrawColour(){
 
+
+  screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   vec3 topLeft(1, 0, 0); //Red
   vec3 topRight(0, 1, 0); //Green
   vec3 bottomRight(0, 0, 1); //Blue
@@ -92,6 +95,59 @@ void Draw(screen* screen)
       PutPixelSDL(screen, col, row, screen_row[col]);
     }
   }
+}
+
+float getRandNumNeg(){
+  float x = float(rand()/ float(RAND_MAX));
+  // 0 < x <= 1
+  // Convert to -1 to 1 --> Times the x by 2, then minus 1.
+  x*=2;
+  x-=1;
+  //printf("X : %f",x);
+  // printf("%f is returned by randNeg()\n",x);
+  return x;
+
+}
+
+float getRandNum(){
+  float x = float(rand()/ float(RAND_MAX));
+  // printf("%f is returned by rand()\n",x);
+  return x;
+}
+
+float getUValue(float x_val,float z_val){
+  float ans = f_length * (x_val/z_val) + SCREEN_WIDTH/2;
+  // printf("%f is U\n",ans);
+  return ans;
+}
+
+float getVValue(float y_val, float z_val){
+  float ans = f_length * (y_val/z_val) + SCREEN_HEIGHT/2;
+  // printf("%f is V\n",ans);
+  return ans;
+}
+
+/*Place your drawing here*/
+void Draw(screen* screen)
+{
+    vector<vec3> stars(1000);
+
+    for(int i = 0 ; i < 1000; i++){
+        stars[i].x = getRandNumNeg();
+        stars[i].y = getRandNumNeg();
+        stars[i].z = getRandNum();
+    }
+  /* Clear buffer */
+
+  vec3 colour(1.0,1,1);
+  memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
+   for(int i=0; i<1000; i++)
+     {
+       float x = getUValue(stars[i].x, stars[i].y);
+       float y = getVValue(stars[i].y, stars[i].z);
+       //printf("%f, %f are X and Y \n",x,y );
+       PutPixelSDL(screen, x, y,colour );
+     }
 }
 
 /*Place updates of parameters here*/
