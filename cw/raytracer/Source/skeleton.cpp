@@ -25,6 +25,7 @@ void Draw(screen* screen);
 int main( int argc, char* argv[] )
 {
 
+
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
 
   while( NoQuitMessageSDL() )
