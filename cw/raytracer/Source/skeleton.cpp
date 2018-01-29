@@ -24,9 +24,9 @@ void Draw(screen* screen);
 
 int main( int argc, char* argv[] )
 {
-  
+
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
-  
+
   while( NoQuitMessageSDL() )
     {
       Update();
@@ -45,7 +45,7 @@ void Draw(screen* screen)
 {
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
-  
+
   vec3 colour(1.0,0.0,0.0);
   for(int i=0; i<1000; i++)
     {
