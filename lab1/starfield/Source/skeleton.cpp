@@ -62,7 +62,7 @@ int main( int argc, char* argv[] )
       Update(stars);
       Draw(screen,stars);
       SDL_Renderframe(screen);
-      cout << "hello?" <<endl;
+      cout << "hello?" << endl;;
     }
 
   SDL_SaveImage( screen, "screenshot.bmp" );
