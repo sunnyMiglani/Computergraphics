@@ -57,8 +57,8 @@ int main( int argc, char* argv[] )
 
   while( NoQuitMessageSDL() )
     {
-      Draw(screen,stars);
       Update(stars);
+      Draw(screen,stars);
       SDL_Renderframe(screen);
     }
 
@@ -105,24 +105,21 @@ float getVValue(float y_val, float z_val){
 void updateValues(vector<vec3>& stars, float dt){
   float velocity = 0.2;
   for(int i = 0; i < 1000; i++){
-    float cur_val = stars[i].z;
-    if(cur_val < 0){printf("Shit. \n");
-  return;}
-    float nxt_val = cur_val - velocity * 3;
-    float temp = nxt_val;
-    if(nxt_val > 1){
-        nxt_val -= 1;
-        continue;
+    vec3& star = stars[i];
+    float cur_val = star.z;
+    float nxt_val = cur_val - velocity * dt * 0.001;
+    if (nxt_val > 1 || nxt_val < 0) {
+      star.x = getRandNumNeg();
+      star.y = getRandNumNeg();
+      star.z = getRandNum();
     }
-    while(nxt_val <= 0){
-      nxt_val += 1;
-    }
-    stars[i].z = nxt_val;
-    printf("nxt_val : %f, new nxt_val : %f  and dt : %f \n",temp,nxt_val,dt);
+    else star.z = nxt_val;
+    printf("nxt_val : %f, new nxt_val : %f  and dt : %f \n",nxt_val,star.z,dt);
   }
 
   return;
 }
+
 
 void init_stars(vector<vec3>& stars){
   for(int i = 0 ; i < 1000; i++){
