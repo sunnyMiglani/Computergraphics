@@ -60,12 +60,23 @@ void Draw(screen* screen)
 {
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
-
   vec3 colour(1.0,0.0,0.0);
+
+  /*  // <<<<<<<<<< This is the main draw loops, the rest is just so it compiles >>>>>>>>>>>
+  float focalLength = 0;
+  vec4<float> cameraPos;
+
+  for(size_t x = 0; x < screen->height; x++){
+    for(size_t y = 0; y < screen->width; y++){
+    vec3<float> d(x- SCREEN_WIDTH, y - SCREEN_HEIGHT/2, 0);
+    // Add closestIntersection call here.
+    }
+  } */
+
   for(int i=0; i<1000; i++)
     {
-      uint32_t x = rand() % screen->width;
-      uint32_t y = rand() % screen->height;
+      uint32_t x = rand() % SCREEN_WIDTH;
+      uint32_t y = rand() % SCREEN_HEIGHT;
       PutPixelSDL(screen, x, y, colour);
     }
 }
@@ -112,7 +123,7 @@ bool ClosestIntersection(vec3 start,vec3 dir,const vector<Triangle>& triangles,I
       closestIntersection.position.y = u; //Found openGl guide that says vec4 is x,y,z,w
       closestIntersection.position.z = v;
       closestIntersection.position.w = 0;
-      closestIntersection.distance = start+t*dir;
+      closestIntersection.distance = t;
       closestIntersection.triangleIndex = i;
     }
   }
