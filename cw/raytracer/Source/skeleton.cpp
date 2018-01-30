@@ -17,6 +17,16 @@ using glm::mat4;
 #define SCREEN_HEIGHT 256
 #define FULLSCREEN_MODE false
 
+
+struct Intersection
+{
+  vec4 position;
+  float distance;
+  int triangleIndex;
+};
+
+
+
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
 
@@ -24,28 +34,11 @@ void Update();
 void Draw(screen* screen);
 bool ClosestIntersection(vec3 start,vec3 dir,const vector<Triangle>& triangles,Intersection& closestIntersection );
 
-struct Intersection
-{
-  vec3 position;
-  float distance;
-  int triangleIndex;
-};
-
 int main( int argc, char* argv[] )
 {
   vector<Triangle> triangles;
-  LoadTestModel( vector<Triangle>& triangles);
+  LoadTestModel(triangles);
 
-  vec3 v0 = triangle.v0;
-  vec3 v1 = triangle.v1;
-  vec3 v2 = triangle.v2;
-
-  vec3 e1 = v1 - v0;
-  vec3 e2 = v2 - v0;
-  vec3 b = s - v0;
-
-  mat3 A(-d, e1, e2);
-  vec3 x = glm::inverse(A)*b;
 
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
 
@@ -91,40 +84,39 @@ void Update()
 }
 
 bool ClosestIntersection(vec3 start,vec3 dir,const vector<Triangle>& triangles,Intersection& closestIntersection ){
-  vector<Triangle> triangles;
-  LoadTestModel( vector<Triangle>& triangles);
+
+
   bool intersection = false;
   float m = std::numeric_limits<float>::max(); // largest value a float can take
 
-  for(int i = 0; i < triangles.size(); i++){
-    triangle = triangles[i];
-    vec3 v0 = triangle.v0;
-    vec3 v1 = triangle.v1;
-    vec3 v2 = triangle.v2;
-    vec3 e1 = v1 - v0;
-    vec3 e2 = v2 - v0;
-    vec3 b = start - v0;
+  for (size_t i = 0; i < triangles.size(); i++){
+    Triangle triangle = triangles[i];
+    vec4 v0 = triangle.v0;
+    vec4 v1 = triangle.v1;
+    vec4 v2 = triangle.v2;
 
-    mat3 A(-d, e1, e2);
+    vec3 e1 = vec3(v1.x-v0.x, v1.y-v0.y, v1.z-v0.z);//v1 - v0;
+    vec3 e2 = vec3(v2.x-v0.x, v2.y-v0.y, v2.z-v0.z);//v2 - v0;
+    vec3 b = vec3(start.x-v0.x, start.y-v0.y, start.z-v0.z);//start - v0;
+
+    mat3 A(-dir, e1, e2);
     vec3 x = glm::inverse(A)*b;
 
-    vec3 t = x.x;
-    vec3 u = x.y;
-    vec3 v = x.z;
+
+    float t = x.x;
+    float u = x.y;
+    float v = x.z;
     if(u > 0 && v > 0 && (u+v) > 0 && t>0){
       intersection = true;
       closestIntersection.position.x = t; //not sure about position and distance
-      closestIntersection.position.y = u;
+      closestIntersection.position.y = u; //Found openGl guide that says vec4 is x,y,z,w
       closestIntersection.position.z = v;
-      closestIntersection.distance = s+t*dir;
+      closestIntersection.position.w = 0;
+      closestIntersection.distance = start+t*dir;
       closestIntersection.triangleIndex = i;
     }
-
-
   }
-
-
-
+  return intersection;
 }
 
 bool isInTrianglePlane(vec3 v0, vec3 e1, vec3 e2, float u, float v){
