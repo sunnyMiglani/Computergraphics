@@ -16,6 +16,7 @@ using glm::mat4;
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 320
 #define FULLSCREEN_MODE false
+#define CHECKING_KEY_STATE true
 
 
 struct Intersection
@@ -30,8 +31,8 @@ struct Intersection
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
 
-void Update();
-void Draw(screen* screen, vector<Triangle>& triangles);
+void Update(vec4& cameraPos);
+void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos);
 bool ClosestIntersection(vec4 start,vec4 dir,const vector<Triangle>& triangles,Intersection& closestIntersection );
 
 int main( int argc, char* argv[] )
@@ -41,10 +42,12 @@ int main( int argc, char* argv[] )
   vector<Triangle> triangles;
   LoadTestModel(triangles);
 
+
+  vec4 cameraPos(0, 0, -3, 1.0); // TODO: Make structure for camera and all these things to it
   while( NoQuitMessageSDL() )
     {
-      Update();
-      Draw(screen, triangles);
+      Update(cameraPos);
+      Draw(screen, triangles, cameraPos);
       SDL_Renderframe(screen);
     }
 
@@ -55,7 +58,7 @@ int main( int argc, char* argv[] )
 }
 
 /*Place your drawing here*/
-void Draw(screen* screen, vector<Triangle>& triangles)
+void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos)
 {
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
@@ -66,7 +69,7 @@ void Draw(screen* screen, vector<Triangle>& triangles)
 
   // <<<<<<<<<< This is the main draw loops, the rest is just so it compiles >>>>>>>>>>>
   float focalLength = SCREEN_WIDTH;
-  vec4 cameraPos(0, 0, -3, 1.0);
+  // vec4 cameraPos(0, 0, -3, 1.0);
   bool intersection;
   Intersection triangleIntersection;
 
@@ -90,7 +93,7 @@ void Draw(screen* screen, vector<Triangle>& triangles)
 }
 
 /*Place updates of parameters here*/
-void Update()
+void Update(vec4& cameraPos)
 {
   static int t = SDL_GetTicks();
   /* Compute frame time */
@@ -100,6 +103,37 @@ void Update()
   /*Good idea to remove this*/
   std::cout << "Render time: " << dt << " ms." << std::endl;
   /* Update variables*/
+
+ if(CHECKING_KEY_STATE){
+    printf("Right before key stages! \n");
+    const uint8_t* keystate = SDL_GetKeyboardState(0);
+    printf("Got Keystate \n");
+
+    if(keystate == NULL){
+      printf("Keys are NULL \n");
+    }
+    if(keystate[SDLK_UP]){
+      cameraPos.y += 0.5;
+      printf("up\n");
+    }
+    if(keystate[SDLK_DOWN]){
+      cameraPos.y -=0.5;
+      printf("down\n");
+    }
+    if(keystate[SDLK_LEFT]){
+      cameraPos.x +=0.5;
+      printf("left\n");
+
+    }
+    if(keystate[SDLK_RIGHT]){
+      cameraPos.x -=0.5;
+      printf("right\n");
+    }
+    else{
+      printf("No keyboard touched! \n");
+    }
+    printf("Got through key stages! \n");
+  }
 }
 
 bool ClosestIntersection(vec4 start,vec4 dir,const vector<Triangle>& triangles,Intersection& closestIntersection ){
