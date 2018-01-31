@@ -14,7 +14,7 @@ using glm::mat4;
 
 
 #define SCREEN_WIDTH 320
-#define SCREEN_HEIGHT 256
+#define SCREEN_HEIGHT 320
 #define FULLSCREEN_MODE false
 
 
@@ -31,21 +31,20 @@ struct Intersection
 /* FUNCTIONS                                                                   */
 
 void Update();
-void Draw(screen* screen);
-bool ClosestIntersection(vec3 start,vec3 dir,const vector<Triangle>& triangles,Intersection& closestIntersection );
+void Draw(screen* screen, vector<Triangle>& triangles);
+bool ClosestIntersection(vec4 start,vec4 dir,const vector<Triangle>& triangles,Intersection& closestIntersection );
 
 int main( int argc, char* argv[] )
 {
+  screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
+
   vector<Triangle> triangles;
   LoadTestModel(triangles);
-
-
-  screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
 
   while( NoQuitMessageSDL() )
     {
       Update();
-      Draw(screen);
+      Draw(screen, triangles);
       SDL_Renderframe(screen);
     }
 
@@ -56,29 +55,38 @@ int main( int argc, char* argv[] )
 }
 
 /*Place your drawing here*/
-void Draw(screen* screen)
+void Draw(screen* screen, vector<Triangle>& triangles)
 {
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
-  vec3 colour(1.0,0.0,0.0);
+  //vec3 colour(1.0,0.0,0.0);
 
-  /*  // <<<<<<<<<< This is the main draw loops, the rest is just so it compiles >>>>>>>>>>>
-  float focalLength = 0;
-  vec4<float> cameraPos;
+  // vector<Triangle> triangles;
+  // LoadTestModel(triangles);
 
-  for(size_t x = 0; x < screen->height; x++){
-    for(size_t y = 0; y < screen->width; y++){
-    vec3<float> d(x- SCREEN_WIDTH, y - SCREEN_HEIGHT/2, 0);
-    // Add closestIntersection call here.
+  // <<<<<<<<<< This is the main draw loops, the rest is just so it compiles >>>>>>>>>>>
+  float focalLength = SCREEN_WIDTH;
+  vec4 cameraPos(0, 0, -3, 1.0);
+  bool intersection;
+  Intersection triangleIntersection;
+
+  for(int y = 0; y < screen->height; y++){ //int because size_t>0
+    for(int x = 0; x < screen->width; x++){
+      vec4 d(x- SCREEN_WIDTH/2, y - SCREEN_HEIGHT/2, focalLength, 1);
+      intersection = ClosestIntersection(cameraPos, d, triangles, triangleIntersection);
+      if(intersection){
+        PutPixelSDL(screen, x, y, triangles[triangleIntersection.triangleIndex].color
+          /(triangleIntersection.distance*100)); //gives depth by reducing color of pixels further away
+      }
     }
-  } */
+  }
 
-  for(int i=0; i<1000; i++)
-    {
-      uint32_t x = rand() % SCREEN_WIDTH;
-      uint32_t y = rand() % SCREEN_HEIGHT;
-      PutPixelSDL(screen, x, y, colour);
-    }
+  /*for(int i=0; i<1000; i++)
+  {
+    uint32_t x = rand() % SCREEN_WIDTH;
+    uint32_t y = rand() % SCREEN_HEIGHT;
+    PutPixelSDL(screen, x, y, colour);
+  }*/
 }
 
 /*Place updates of parameters here*/
@@ -94,11 +102,9 @@ void Update()
   /* Update variables*/
 }
 
-bool ClosestIntersection(vec3 start,vec3 dir,const vector<Triangle>& triangles,Intersection& closestIntersection ){
-
-
+bool ClosestIntersection(vec4 start,vec4 dir,const vector<Triangle>& triangles,Intersection& closestIntersection ){
   bool intersection = false;
-  float m = std::numeric_limits<float>::max(); // largest value a float can take
+  closestIntersection.distance = std::numeric_limits<float>::max(); // take large initial value
 
   for (size_t i = 0; i < triangles.size(); i++){
     Triangle triangle = triangles[i];
@@ -110,17 +116,17 @@ bool ClosestIntersection(vec3 start,vec3 dir,const vector<Triangle>& triangles,I
     vec3 e2 = vec3(v2.x-v0.x, v2.y-v0.y, v2.z-v0.z);//v2 - v0;
     vec3 b = vec3(start.x-v0.x, start.y-v0.y, start.z-v0.z);//start - v0;
 
-    mat3 A(-dir, e1, e2);
+    mat3 A(-vec3(dir), e1, e2);
     vec3 x = glm::inverse(A)*b;
 
 
     float t = x.x;
     float u = x.y;
     float v = x.z;
-    if(u > 0 && v > 0 && (u+v) > 0 && t>0){
+    if(u >= 0 && v >= 0 && (u+v) <= 1 && t>=0 && t<closestIntersection.distance){ //check if distance closer than current closestIntersection
       intersection = true;
-      closestIntersection.position.x = t; //not sure about position and distance
-      closestIntersection.position.y = u; //Found openGl guide that says vec4 is x,y,z,w
+      closestIntersection.position.x = t;
+      closestIntersection.position.y = u;
       closestIntersection.position.z = v;
       closestIntersection.position.w = 0;
       closestIntersection.distance = t;
@@ -128,11 +134,4 @@ bool ClosestIntersection(vec3 start,vec3 dir,const vector<Triangle>& triangles,I
     }
   }
   return intersection;
-}
-
-bool isInTrianglePlane(vec3 v0, vec3 e1, vec3 e2, float u, float v){
-  vec3 point = v0 + u*e1 + v*e2;
-  if(u < 1 && v < 1 && (u+v) < 1){
-    return true;
-  } else return false;
 }
