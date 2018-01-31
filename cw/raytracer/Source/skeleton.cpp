@@ -106,38 +106,25 @@ void Update(vec4& cameraPos)
   /* Update variables*/
 
  if(CHECKING_KEY_STATE){
-    printf("Right before key stages! \n");
     const uint8_t* keystate = SDL_GetKeyboardState(0);
-    printf("Got Keystate \n");
 
     if(keystate == NULL){
       printf("Keys are NULL \n");
-
     }
     else {
       if(keystate[SDL_SCANCODE_UP]){
         cameraPos.y += 0.05;
-        printf("up\n");
       }
       if(keystate[SDL_SCANCODE_DOWN]){
         cameraPos.y -=0.05;
-        printf("down\n");
       }
       if(keystate[SDL_SCANCODE_LEFT]){
         cameraPos.x +=0.05;
-        printf("left\n");
-
       }
       if(keystate[SDL_SCANCODE_RIGHT]){
         cameraPos.x -=0.05;
-        printf("right\n");
       }
-      else{
-        printf("No keyboard touched! \n");
-      }
-      printf("Got through key stages! \n");
     }//end of large else
-
   }
 }
 
