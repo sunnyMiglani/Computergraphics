@@ -111,28 +111,32 @@ void Update(vec4& cameraPos)
 
     if(keystate == NULL){
       printf("Keys are NULL \n");
-    }
-    if(keystate[SDLK_UP]){
-      cameraPos.y += 0.5;
-      printf("up\n");
-    }
-    if(keystate[SDLK_DOWN]){
-      cameraPos.y -=0.5;
-      printf("down\n");
-    }
-    if(keystate[SDLK_LEFT]){
-      cameraPos.x +=0.5;
-      printf("left\n");
 
     }
-    if(keystate[SDLK_RIGHT]){
-      cameraPos.x -=0.5;
-      printf("right\n");
-    }
-    else{
-      printf("No keyboard touched! \n");
-    }
-    printf("Got through key stages! \n");
+    else {
+      if(keystate[SDLK_UP]){
+        cameraPos.y += 0.5;
+        printf("up\n");
+      }
+      if(keystate[SDLK_DOWN]){
+        cameraPos.y -=0.5;
+        printf("down\n");
+      }
+      if(keystate[SDLK_LEFT]){
+        cameraPos.x +=0.5;
+        printf("left\n");
+
+      }
+      if(keystate[SDLK_RIGHT]){
+        cameraPos.x -=0.5;
+        printf("right\n");
+      }
+      else{
+        printf("No keyboard touched! \n");
+      }
+      printf("Got through key stages! \n");
+    }//end of large else
+
   }
 }
 
