@@ -19,6 +19,7 @@ using glm::mat4;
 #define CHECKING_KEY_STATE true
 
 
+
 struct Intersection
 {
   vec4 position;
@@ -114,21 +115,21 @@ void Update(vec4& cameraPos)
 
     }
     else {
-      if(keystate[SDLK_UP]){
-        cameraPos.y += 0.5;
+      if(keystate[SDL_SCANCODE_UP]){
+        cameraPos.y += 0.05;
         printf("up\n");
       }
-      if(keystate[SDLK_DOWN]){
-        cameraPos.y -=0.5;
+      if(keystate[SDL_SCANCODE_DOWN]){
+        cameraPos.y -=0.05;
         printf("down\n");
       }
-      if(keystate[SDLK_LEFT]){
-        cameraPos.x +=0.5;
+      if(keystate[SDL_SCANCODE_LEFT]){
+        cameraPos.x +=0.05;
         printf("left\n");
 
       }
-      if(keystate[SDLK_RIGHT]){
-        cameraPos.x -=0.5;
+      if(keystate[SDL_SCANCODE_RIGHT]){
+        cameraPos.x -=0.05;
         printf("right\n");
       }
       else{
