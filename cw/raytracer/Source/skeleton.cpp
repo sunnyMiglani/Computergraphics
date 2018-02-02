@@ -33,8 +33,11 @@ struct Intersection
 /* FUNCTIONS                                                                   */
 
 void Update(vec4& cameraPos);
+mat4 rotation(float yaw);
 void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos);
 bool ClosestIntersection(vec4 start,vec4 dir,const vector<Triangle>& triangles,Intersection& closestIntersection );
+float yaw = 0;
+const double pi =3.141592653589793238463;
 
 int main( int argc, char* argv[] )
 {
@@ -97,6 +100,7 @@ void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos)
 void Update(vec4& cameraPos)
 {
   static int t = SDL_GetTicks();
+
   /* Compute frame time */
   int t2 = SDL_GetTicks();
   float dt = float(t2-t);
@@ -113,16 +117,19 @@ void Update(vec4& cameraPos)
     }
     else {
       if(keystate[SDL_SCANCODE_UP]){
-        cameraPos.y += 0.05;
+        cameraPos.z += 0.05;
       }
       if(keystate[SDL_SCANCODE_DOWN]){
-        cameraPos.y -=0.05;
+        cameraPos.z -=0.05;
       }
       if(keystate[SDL_SCANCODE_LEFT]){
-        cameraPos.x +=0.05;
+        yaw = 0.04;
+        cameraPos = rotation(yaw)*cameraPos;
+
       }
       if(keystate[SDL_SCANCODE_RIGHT]){
-        cameraPos.x -=0.05;
+        yaw = -0.04;
+        cameraPos = rotation(yaw)*cameraPos;
       }
     }//end of large else
   }
@@ -160,4 +167,12 @@ bool ClosestIntersection(vec4 start,vec4 dir,const vector<Triangle>& triangles,I
     }
   }
   return intersection;
+}
+
+mat4 rotation(float yaw){
+  mat4 R_y(cos(yaw), 0, sin(yaw), 0,
+              0    , 1,    0    , 0,
+          -sin(yaw), 0, cos(yaw), 0,
+              0    , 0,    0    , 1);
+  return R_y;
 }
