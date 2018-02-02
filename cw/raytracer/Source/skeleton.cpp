@@ -32,9 +32,9 @@ struct Intersection
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
 
-void Update(vec4& cameraPos);
+void Update(vec4& cameraPos,mat4& cameraDirection);
 mat4 rotation(float yaw);
-void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos);
+void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos, mat4& cameraDirection);
 bool ClosestIntersection(vec4 start,vec4 dir,const vector<Triangle>& triangles,Intersection& closestIntersection );
 float yaw = 0;
 const double pi =3.141592653589793238463;
@@ -46,12 +46,12 @@ int main( int argc, char* argv[] )
   vector<Triangle> triangles;
   LoadTestModel(triangles);
 
-
-  vec4 cameraPos(0, 0, -3, 1.0); // TODO: Make structure for camera and all these things to it
+  mat4 cameraDirection =  rotation(0);
+  vec4 cameraPos(0, 0, -3, 1); // TODO: Make structure for camera and all these things to it
   while( NoQuitMessageSDL() )
     {
-      Update(cameraPos);
-      Draw(screen, triangles, cameraPos);
+      Update(cameraPos,cameraDirection);
+      Draw(screen, triangles, cameraPos, cameraDirection);
       SDL_Renderframe(screen);
     }
 
@@ -62,7 +62,7 @@ int main( int argc, char* argv[] )
 }
 
 /*Place your drawing here*/
-void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos)
+void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos, mat4& cameraDirection)
 {
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
@@ -80,7 +80,7 @@ void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos)
   for(int y = 0; y < screen->height; y++){ //int because size_t>0
     for(int x = 0; x < screen->width; x++){
       vec4 d(x- SCREEN_WIDTH/2, y - SCREEN_HEIGHT/2, focalLength, 1);
-      intersection = ClosestIntersection(cameraPos, d, triangles, triangleIntersection);
+      intersection = ClosestIntersection(cameraPos, d * cameraDirection, triangles, triangleIntersection);
       if(intersection){
         PutPixelSDL(screen, x, y, triangles[triangleIntersection.triangleIndex].color
           /(triangleIntersection.distance*100)); //gives depth by reducing color of pixels further away
@@ -97,9 +97,13 @@ void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos)
 }
 
 /*Place updates of parameters here*/
-void Update(vec4& cameraPos)
+void Update(vec4& cameraPos, mat4& cameraDirection)
 {
   static int t = SDL_GetTicks();
+
+  vec4 right(cameraDirection[0][0], cameraDirection[0][1], cameraDirection[0][2], 1 );
+  vec4 down(cameraDirection[1][0], cameraDirection[1][1], cameraDirection[1][2], 1 );
+  vec4 forward( cameraDirection[2][0], cameraDirection[2][1], cameraDirection[2][2], 1);
 
   /* Compute frame time */
   int t2 = SDL_GetTicks();
@@ -117,19 +121,19 @@ void Update(vec4& cameraPos)
     }
     else {
       if(keystate[SDL_SCANCODE_UP]){
-        cameraPos.z += 0.05;
+        cameraPos += (forward * 0.05f);
       }
       if(keystate[SDL_SCANCODE_DOWN]){
-        cameraPos.z -=0.05;
+        cameraPos -= (forward * 0.05f);
       }
       if(keystate[SDL_SCANCODE_LEFT]){
-        yaw = 0.04;
-        cameraPos = rotation(yaw)*cameraPos;
+        yaw += 0.04;
+        cameraDirection = rotation(yaw);
 
       }
       if(keystate[SDL_SCANCODE_RIGHT]){
-        yaw = -0.04;
-        cameraPos = rotation(yaw)*cameraPos;
+        yaw -= 0.04;
+        cameraDirection = rotation(yaw);
       }
     }//end of large else
   }
