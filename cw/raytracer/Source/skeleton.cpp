@@ -36,8 +36,15 @@ void Update(vec4& cameraPos,mat4& cameraDirection);
 mat4 rotation(float yaw);
 void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos, mat4& cameraDirection);
 bool ClosestIntersection(vec4 start,vec4 dir,const vector<Triangle>& triangles,Intersection& closestIntersection );
+vec3 DirectLight(const Intersection& i);
+
+
+/* ----------------------------------------------------------------------------*/
+/* GLOBAL VARIABLES                                                            */
 float yaw = 0;
-const double pi =3.141592653589793238463;
+vec4 lightPositon(0, -0.5, -0.7, 1);
+vec3 lightColor = 14.f * vec3(1, 1, 1);
+const double pi  =3.141592653589793238463;
 
 int main( int argc, char* argv[] )
 {
@@ -166,4 +173,15 @@ mat4 rotation(float yaw){
           -sin(yaw), 0, cos(yaw), 0,
               0    , 0,    0    , 1);
   return R_y;
+}
+
+vec3 DirectLight(const Intersection& i, vector<Triangle>& triangles){
+  vec4 position = i.position;
+  int triangleIndex = i.triangleIndex;
+
+  vec4 r = vec4(lightPositon.x - position.x, lightPositon.y - position.y, lightPositon.z - position.z, 0);
+  vec4 normal = triangles[triangleIndex].normal;
+  //vec3 D = (lightColor*weed/(4*pi*(r*r)));
+
+  return vec3(0,0,0);
 }
