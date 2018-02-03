@@ -66,14 +66,9 @@ void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos, mat4& ca
 {
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
-  //vec3 colour(1.0,0.0,0.0);
-
-  // vector<Triangle> triangles;
-  // LoadTestModel(triangles);
 
   // <<<<<<<<<< This is the main draw loops, the rest is just so it compiles >>>>>>>>>>>
   float focalLength = SCREEN_WIDTH;
-  // vec4 cameraPos(0, 0, -3, 1.0);
   bool intersection;
   Intersection triangleIntersection;
 
@@ -87,13 +82,6 @@ void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos, mat4& ca
       }
     }
   }
-
-  /*for(int i=0; i<1000; i++)
-  {
-    uint32_t x = rand() % SCREEN_WIDTH;
-    uint32_t y = rand() % SCREEN_HEIGHT;
-    PutPixelSDL(screen, x, y, colour);
-  }*/
 }
 
 /*Place updates of parameters here*/
@@ -127,12 +115,12 @@ void Update(vec4& cameraPos, mat4& cameraDirection)
         cameraPos -= (forward * 0.05f);
       }
       if(keystate[SDL_SCANCODE_LEFT]){
-        yaw += 0.04;
+        yaw -= 0.04;
         cameraDirection = rotation(yaw);
 
       }
       if(keystate[SDL_SCANCODE_RIGHT]){
-        yaw -= 0.04;
+        yaw += 0.04;
         cameraDirection = rotation(yaw);
       }
     }//end of large else
