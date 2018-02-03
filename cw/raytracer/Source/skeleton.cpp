@@ -36,15 +36,17 @@ void Update(vec4& cameraPos,mat4& cameraDirection);
 mat4 rotation(float yaw);
 void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos, mat4& cameraDirection);
 bool ClosestIntersection(vec4 start,vec4 dir,const vector<Triangle>& triangles,Intersection& closestIntersection );
-vec3 DirectLight(const Intersection& i);
+vec3 DirectLight(const Intersection& i,vector<Triangle>& triangles );
+vec3 Dot_Prod_v3(vec3& a, vec3& b);
+vec4 Dot_Prod_v4(vec4& a, vec4& b);
 
 
 /* ----------------------------------------------------------------------------*/
 /* GLOBAL VARIABLES                                                            */
 float yaw = 0;
 vec4 lightPositon(0, -0.5, -0.7, 1);
-vec3 lightColor = 14.f * vec3(1, 1, 1);
-const double pi  =3.141592653589793238463;
+vec4 lightColor = 14.f * vec4(1, 1, 1,1);
+const float pi  = 3.141592653589793238463;
 
 int main( int argc, char* argv[] )
 {
@@ -84,7 +86,8 @@ void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos, mat4& ca
       vec4 d(x- SCREEN_WIDTH/2, y - SCREEN_HEIGHT/2, focalLength, 1);
       intersection = ClosestIntersection(cameraPos, cameraDirection*d, triangles, triangleIntersection);
       if(intersection){
-        PutPixelSDL(screen, x, y, triangles[triangleIntersection.triangleIndex].color);
+        PutPixelSDL(screen, x, y, triangles[triangleIntersection.triangleIndex].color*DirectLight(triangleIntersection,triangles));
+        // triangles[triangleIntersection.triangleIndex].color
         //  /(triangleIntersection.distance*100)); //gives depth by reducing color of pixels further away
       }
     }
@@ -156,10 +159,11 @@ bool ClosestIntersection(vec4 start,vec4 dir,const vector<Triangle>& triangles,I
     float v = x.z;
     if(u >= 0 && v >= 0 && (u+v) <= 1 && t>=0 && t<closestIntersection.distance){ //check if distance closer than current closestIntersection
       intersection = true;
-      closestIntersection.position.x = t;
-      closestIntersection.position.y = u;
-      closestIntersection.position.z = v;
-      closestIntersection.position.w = 0;
+      // closestIntersection.position.x = t;
+      // closestIntersection.position.y = u;
+      // closestIntersection.position.z = v;
+      // closestIntersection.position.w = 0;
+      closestIntersection.position = v0 + u*vec4(e1.x,e1.y,e1.z,0) + v*vec4(e2.x,e2.y,e2.z,0);// = s + dir * t
       closestIntersection.distance = t;
       closestIntersection.triangleIndex = i;
     }
@@ -175,13 +179,31 @@ mat4 rotation(float yaw){
   return R_y;
 }
 
+vec3 Dot_Prod_v3(vec3& a, vec3& b){
+  return vec3(a.x *b.x, a.y*b.y, a.z*b.z);
+}
+
+vec4 Dot_Prod_v4(vec4& a, vec4& b){
+  return vec4(a.x *b.x, a.y*b.y, a.z*b.z, a.w * b.w);
+}
+
 vec3 DirectLight(const Intersection& i, vector<Triangle>& triangles){
   vec4 position = i.position;
   int triangleIndex = i.triangleIndex;
 
-  vec4 r = vec4(lightPositon.x - position.x, lightPositon.y - position.y, lightPositon.z - position.z, 0);
+  //vec4 r = vec4(lightPositon.x - position.x, lightPositon.y - position.y, lightPositon.z - position.z, 0);
+  vec4 r = normalize(lightPositon - position);
+  float length_r = glm::length(lightPositon - position);
+  //float rSum = sqrt((r.x*r.x) + (r.y*r.y) + (r.z*r.z));
+  //r = r/rSum;
   vec4 normal = triangles[triangleIndex].normal;
-  //vec3 D = (lightColor*weed/(4*pi*(r*r)));
+  float rNorm = dot(r,normal);
 
-  return vec3(0,0,0);
+
+
+  rNorm = max(rNorm,0.f);
+  vec4 D = (lightColor*rNorm)/(float)(4*pi*length_r*length_r);
+
+  // printf("D: (%f),(%f),(%f) \n",D.x,D.y,D.z);
+  return vec3(D.x,D.y,D.z);
 }
