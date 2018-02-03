@@ -118,6 +118,7 @@ void Update(vec4& cameraPos, mat4& cameraDirection)
       printf("Keys are NULL \n");
     }
     else {
+//Move Camera
       if(keystate[SDL_SCANCODE_UP]){
         cameraPos += (forward * 0.05f);
       }
@@ -131,6 +132,19 @@ void Update(vec4& cameraPos, mat4& cameraDirection)
       if(keystate[SDL_SCANCODE_RIGHT]){
         yaw -= 0.04;
         cameraDirection = rotation(yaw);
+      }
+//Move Light Source
+      if(keystate[SDL_SCANCODE_W]){
+        lightPositon += (forward*0.05f);
+      }
+      if(keystate[SDL_SCANCODE_S]){
+        lightPositon -= (forward*0.05f);
+      }
+      if(keystate[SDL_SCANCODE_A]){
+        lightPositon -= (right*0.05f);
+      }
+      if(keystate[SDL_SCANCODE_D]){
+        lightPositon += (right*0.05f);
       }
     }//end of large else
   }
