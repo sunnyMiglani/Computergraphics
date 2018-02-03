@@ -75,10 +75,10 @@ void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos, mat4& ca
   for(int y = 0; y < screen->height; y++){ //int because size_t>0
     for(int x = 0; x < screen->width; x++){
       vec4 d(x- SCREEN_WIDTH/2, y - SCREEN_HEIGHT/2, focalLength, 1);
-      intersection = ClosestIntersection(cameraPos, d * cameraDirection, triangles, triangleIntersection);
+      intersection = ClosestIntersection(cameraPos, cameraDirection*d, triangles, triangleIntersection);
       if(intersection){
-        PutPixelSDL(screen, x, y, triangles[triangleIntersection.triangleIndex].color
-          /(triangleIntersection.distance*100)); //gives depth by reducing color of pixels further away
+        PutPixelSDL(screen, x, y, triangles[triangleIntersection.triangleIndex].color);
+        //  /(triangleIntersection.distance*100)); //gives depth by reducing color of pixels further away
       }
     }
   }
@@ -89,8 +89,8 @@ void Update(vec4& cameraPos, mat4& cameraDirection)
 {
   static int t = SDL_GetTicks();
 
-  vec4 right(cameraDirection[0][0], cameraDirection[0][1], cameraDirection[0][2], 1 );
-  vec4 down(cameraDirection[1][0], cameraDirection[1][1], cameraDirection[1][2], 1 );
+  vec4 right(cameraDirection[0][0], cameraDirection[0][1], cameraDirection[0][2], 1);
+  vec4 down(cameraDirection[1][0], cameraDirection[1][1], cameraDirection[1][2], 1);
   vec4 forward( cameraDirection[2][0], cameraDirection[2][1], cameraDirection[2][2], 1);
 
   /* Compute frame time */
@@ -115,12 +115,11 @@ void Update(vec4& cameraPos, mat4& cameraDirection)
         cameraPos -= (forward * 0.05f);
       }
       if(keystate[SDL_SCANCODE_LEFT]){
-        yaw -= 0.04;
+        yaw += 0.04;
         cameraDirection = rotation(yaw);
-
       }
       if(keystate[SDL_SCANCODE_RIGHT]){
-        yaw += 0.04;
+        yaw -= 0.04;
         cameraDirection = rotation(yaw);
       }
     }//end of large else
