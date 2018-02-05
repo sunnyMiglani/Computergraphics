@@ -49,6 +49,7 @@ vec4 lightColor = 14.f * vec4(1, 1, 1,1);
 const float pi  = 3.141592653589793238463;
 mat4 cameraDirection =  rotation(0);
 vec4 cameraPos(0, 0, -3, 1); // TODO: Make structure for camera and all these things to it
+vec3 indirectLight = 0.5f * vec3(1, 1, 1);
 
 
 int main( int argc, char* argv[] )
@@ -90,11 +91,9 @@ void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos, mat4& ca
       if(intersection){
         vec3 shadedPixel = DirectLight(triangleIntersection,triangles,shadowPixel);
         if(shadowPixel){
-          PutPixelSDL(screen, x, y, vec3(0,0,0));
+          shadedPixel = vec3(0,0,0);
         }
-        else{
-          PutPixelSDL(screen, x, y, triangles[triangleIntersection.triangleIndex].color*shadedPixel);
-        }
+        PutPixelSDL(screen, x, y, triangles[triangleIntersection.triangleIndex].color*(shadedPixel+indirectLight));
         // triangles[triangleIntersection.triangleIndex].color
         //  /(triangleIntersection.distance*100)); //gives depth by reducing color of pixels further away
       }
