@@ -36,7 +36,7 @@ void Update(vec4& cameraPos,mat4& cameraDirection);
 mat4 rotation(float yaw);
 void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos, mat4& cameraDirection);
 bool ClosestIntersection(vec4 start,vec4 dir,const vector<Triangle>& triangles,Intersection& closestIntersection );
-vec3 DirectLight(const Intersection& i,vector<Triangle>& triangles );
+vec3 DirectLight(const Intersection& i,vector<Triangle>& triangles,bool& shadowPixel );
 vec3 Dot_Prod_v3(vec3& a, vec3& b);
 vec4 Dot_Prod_v4(vec4& a, vec4& b);
 
@@ -47,6 +47,9 @@ float yaw = 0;
 vec4 lightPositon(0, -0.5, -0.7, 1);
 vec4 lightColor = 14.f * vec4(1, 1, 1,1);
 const float pi  = 3.141592653589793238463;
+mat4 cameraDirection =  rotation(0);
+vec4 cameraPos(0, 0, -3, 1); // TODO: Make structure for camera and all these things to it
+
 
 int main( int argc, char* argv[] )
 {
@@ -55,8 +58,6 @@ int main( int argc, char* argv[] )
   vector<Triangle> triangles;
   LoadTestModel(triangles);
 
-  mat4 cameraDirection =  rotation(0);
-  vec4 cameraPos(0, 0, -3, 1); // TODO: Make structure for camera and all these things to it
   while( NoQuitMessageSDL() )
     {
       Update(cameraPos,cameraDirection);
@@ -79,6 +80,7 @@ void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos, mat4& ca
   // <<<<<<<<<< This is the main draw loops, the rest is just so it compiles >>>>>>>>>>>
   float focalLength = SCREEN_WIDTH;
   bool intersection;
+  bool shadowPixel;
   Intersection triangleIntersection;
 
   for(int y = 0; y < screen->height; y++){ //int because size_t>0
@@ -86,7 +88,13 @@ void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos, mat4& ca
       vec4 d(x- SCREEN_WIDTH/2, y - SCREEN_HEIGHT/2, focalLength, 1);
       intersection = ClosestIntersection(cameraPos, cameraDirection*d, triangles, triangleIntersection);
       if(intersection){
-        PutPixelSDL(screen, x, y, triangles[triangleIntersection.triangleIndex].color*DirectLight(triangleIntersection,triangles));
+        vec3 shadedPixel = DirectLight(triangleIntersection,triangles,shadowPixel);
+        if(shadowPixel){
+          PutPixelSDL(screen, x, y, vec3(0,0,0));
+        }
+        else{
+          PutPixelSDL(screen, x, y, triangles[triangleIntersection.triangleIndex].color*shadedPixel);
+        }
         // triangles[triangleIntersection.triangleIndex].color
         //  /(triangleIntersection.distance*100)); //gives depth by reducing color of pixels further away
       }
@@ -168,6 +176,8 @@ bool ClosestIntersection(vec4 start,vec4 dir,const vector<Triangle>& triangles,I
     vec3 x = glm::inverse(A)*b;
 
 
+
+
     float t = x.x;
     float u = x.y;
     float v = x.z;
@@ -201,18 +211,26 @@ vec4 Dot_Prod_v4(vec4& a, vec4& b){
   return vec4(a.x *b.x, a.y*b.y, a.z*b.z, a.w * b.w);
 }
 
-vec3 DirectLight(const Intersection& i, vector<Triangle>& triangles){
+vec3 DirectLight(const Intersection& i, vector<Triangle>& triangles, bool& shadowPixel){
   vec4 position = i.position;
   int triangleIndex = i.triangleIndex;
 
-  //vec4 r = vec4(lightPositon.x - position.x, lightPositon.y - position.y, lightPositon.z - position.z, 0);
-  vec4 r = normalize(lightPositon - position);
+  vec4 r = normalize(lightPositon - position); // r -> Direction to light.
   float length_r = glm::length(lightPositon - position);
-  //float rSum = sqrt((r.x*r.x) + (r.y*r.y) + (r.z*r.z));
-  //r = r/rSum;
+
   vec4 normal = triangles[triangleIndex].normal;
   float rNorm = dot(r,normal);
 
+  bool intersection;
+  Intersection thisIntersection;
+  intersection = ClosestIntersection(position+0.001f*r, r, triangles, thisIntersection);
+  if(intersection){
+    float distToClosestIntesect = thisIntersection.distance;
+    if(length_r >= distToClosestIntesect){
+      shadowPixel = true;
+    }
+    else shadowPixel = false;
+  } else shadowPixel = false;
 
 
   rNorm = max(rNorm,0.f);
