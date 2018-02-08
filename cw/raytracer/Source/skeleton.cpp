@@ -78,7 +78,6 @@ void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos, mat4& ca
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
 
-  // <<<<<<<<<< This is the main draw loops, the rest is just so it compiles >>>>>>>>>>>
   float focalLength = SCREEN_WIDTH;
   bool intersection;
   bool shadowPixel;
@@ -182,10 +181,6 @@ bool ClosestIntersection(vec4 start,vec4 dir,const vector<Triangle>& triangles,I
     float v = x.z;
     if(u >= 0 && v >= 0 && (u+v) <= 1 && t>=0 && t<closestIntersection.distance){ //check if distance closer than current closestIntersection
       intersection = true;
-      // closestIntersection.position.x = t;
-      // closestIntersection.position.y = u;
-      // closestIntersection.position.z = v;
-      // closestIntersection.position.w = 0;
       closestIntersection.position = v0 + u*vec4(e1.x,e1.y,e1.z,0) + v*vec4(e2.x,e2.y,e2.z,0);// = s + dir * t
       closestIntersection.distance = t;
       closestIntersection.triangleIndex = i;
