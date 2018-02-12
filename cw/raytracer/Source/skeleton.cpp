@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include "limits"
 
+
 using namespace std;
 using glm::vec3;
 using glm::mat3;
@@ -13,9 +14,9 @@ using glm::vec4;
 using glm::mat4;
 
 
-#define SCREEN_WIDTH 320
-#define SCREEN_HEIGHT 320
-#define FULLSCREEN_MODE false
+#define SCREEN_WIDTH 64
+#define SCREEN_HEIGHT 64
+#define FULLSCREEN_MODE true
 #define CHECKING_KEY_STATE true
 
 
@@ -72,6 +73,10 @@ int main( int argc, char* argv[] )
   return 0;
 }
 
+
+
+
+
 /*Place your drawing here*/
 void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos, mat4& cameraDirection)
 {
@@ -79,20 +84,48 @@ void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos, mat4& ca
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
 
   float focalLength = SCREEN_WIDTH;
-  bool intersection;
+  bool intersection_da;
+  bool intersection_db;
+  bool intersection_dc;
+  bool intersection_dd;
   bool shadowPixel;
-  Intersection triangleIntersection;
+  Intersection triangleIntersection_da;
+  Intersection triangleIntersection_db;
+  Intersection triangleIntersection_dc;
+  Intersection triangleIntersection_dd;
+
+
 
   for(int y = 0; y < screen->height; y++){ //int because size_t>0
     for(int x = 0; x < screen->width; x++){
-      vec4 d(x- SCREEN_WIDTH/2, y - SCREEN_HEIGHT/2, focalLength, 1);
-      intersection = ClosestIntersection(cameraPos, cameraDirection*d, triangles, triangleIntersection);
+      vec4 da(x- SCREEN_WIDTH/2 + 0.25, y - SCREEN_HEIGHT/2 + 0.25, focalLength, 1);
+      vec4 db(x- SCREEN_WIDTH/2 + 0.25, y - SCREEN_HEIGHT/2 - 0.25, focalLength, 1);
+      vec4 dc(x- SCREEN_WIDTH/2 - 0.25, y - SCREEN_HEIGHT/2 - 0.25, focalLength, 1);
+      vec4 dd(x- SCREEN_WIDTH/2 - 0.25, y - SCREEN_HEIGHT/2 + 0.25, focalLength, 1);
+      intersection_da = ClosestIntersection(cameraPos, cameraDirection*da, triangles, triangleIntersection_da);
+      intersection_db = ClosestIntersection(cameraPos, cameraDirection*db, triangles, triangleIntersection_db);
+      intersection_dc = ClosestIntersection(cameraPos, cameraDirection*dc, triangles, triangleIntersection_dc);
+      intersection_dd = ClosestIntersection(cameraPos, cameraDirection*dd, triangles, triangleIntersection_dd);
+
+      bool intersection = intersection_da && intersection_db && intersection_dc && intersection_dd;
+
       if(intersection){
-        vec3 shadedPixel = DirectLight(triangleIntersection,triangles,shadowPixel);
-        if(shadowPixel){
-          shadedPixel = vec3(0,0,0);
-        }
-        PutPixelSDL(screen, x, y, triangles[triangleIntersection.triangleIndex].color*(shadedPixel+indirectLight));
+        // vec3 shadedPixel = DirectLight(triangleIntersection,triangles,shadowPixel);
+        vec3 avgColour;
+        vec3 temp_da =  triangles[triangleIntersection_da.triangleIndex].color;
+        vec3 temp_dd =  triangles[triangleIntersection_dd.triangleIndex].color;
+        vec3 temp_db =  triangles[triangleIntersection_db.triangleIndex].color;
+        vec3 temp_dc =  triangles[triangleIntersection_dc.triangleIndex].color;
+
+        avgColour = (temp_da + temp_db + temp_dc + temp_dd);
+        avgColour = vec3(avgColour.x / 4, avgColour.y/ 4, avgColour.z/4);
+
+
+        // if(shadowPixel){
+        //   shadedPixel = vec3(0,0,0);
+        // }
+        PutPixelSDL(screen, x, y, avgColour);
+        // PutPixelSDL(screen, x, y, triangles[triangleIntersection.triangleIndex].color*(shadedPixel+indirectLight));
         // triangles[triangleIntersection.triangleIndex].color
         //  /(triangleIntersection.distance*100)); //gives depth by reducing color of pixels further away
       }
@@ -155,6 +188,30 @@ void Update(vec4& cameraPos, mat4& cameraDirection)
     }//end of large else
   }
 }
+
+/**
+
+  Anti Aliasing :
+
+  Really pretty :
+  SSAA -> Super sampling anti Aliasing (Pretttyyyy)
+  TSAA -> ?  ??  ? ?
+  - Can claim for anti alisaing twice if diff algorithms
+  fx-aa (rasteuriszer##)
+  MSAA < - Expensive? (multi sample aa)
+
+  Anti Aliasing with SSAA:
+  1. Take 3 rays instead of one, take some "random" position
+  From the "random" positions, sample and take average
+
+  2.
+
+
+
+
+
+**/
+
 
 bool ClosestIntersection(vec4 start,vec4 dir,const vector<Triangle>& triangles,Intersection& closestIntersection ){
   bool intersection = false;
