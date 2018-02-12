@@ -19,6 +19,7 @@ using glm::mat4;
 #define FULLSCREEN_MODE false
 #define CHECKING_KEY_STATE true
 #define SHADOW_RENDER false
+#define NUM_RAYS 4
 
 
 struct Intersection
@@ -40,7 +41,8 @@ bool ClosestIntersection(vec4 start,vec4 dir,const vector<Triangle>& triangles,I
 vec3 DirectLight(const Intersection& i,vector<Triangle>& triangles,bool& shadowPixel );
 vec3 Dot_Prod_v3(vec3& a, vec3& b);
 vec4 Dot_Prod_v4(vec4& a, vec4& b);
-
+vec3 getAntiAliasingAvg(int x, int y, vector<Triangle>& triangles, vec4& cameraPos,
+                        mat4& cameraDirection, vector<Intersection>& intersectionArray, bool& check_intersection);
 
 /* ----------------------------------------------------------------------------*/
 /* GLOBAL VARIABLES                                                            */
@@ -51,6 +53,8 @@ const float pi  = 3.141592653589793238463;
 mat4 cameraDirection =  rotation(0);
 vec4 cameraPos(0, 0, -3, 1); // TODO: Make structure for camera and all these things to it
 vec3 indirectLight = 0.5f * vec3(1, 1, 1);
+float focalLength = SCREEN_WIDTH;
+
 
 
 int main( int argc, char* argv[] )
@@ -74,17 +78,34 @@ int main( int argc, char* argv[] )
 }
 
 
-void getAntiAliasingAvg(vector<Triange>& triangles, vec4& cameraPos, mat4& cameraDirection, int numOfSamples){
-  Intersection intersectionArray[numOfSamples];
-  bool boolArray[numOfSamples];
-  vec4 vec4Array[numOfSamples];
+vec3 getAntiAliasingAvg(int x, int y, vector<Triangle>& triangles, vec4& cameraPos,
+                        mat4& cameraDirection, vector<Intersection>& intersectionArray, bool &check_intersection){
 
-  for(int i=0; i< numOfSamples; i++){
+  check_intersection = true;
+  float offset = 0.5-1/(sqrt(NUM_RAYS)*2);
+  float interval = 1/sqrt(NUM_RAYS);
+  vec3 totalColor = vec3(0.0,0.0,0.0);
+  vec3 avgColor;
+  int index = 0;
+  bool shadowPixel;
+  bool intersection;
+  Intersection triangleIntersection;
 
-    // vec4 da(x- SCREEN_WIDTH/2 + 0.25, y - SCREEN_HEIGHT/2 + 0.25, focalLength, 1);
+  for(float j = -offset; j <= offset; j += interval) {
+    for(float i = -offset; i <= offset; i += interval) {
+      vec4 d(x- SCREEN_WIDTH/2 + i, y - SCREEN_HEIGHT/2 + j, focalLength, 1);
+      intersection = ClosestIntersection(cameraPos, cameraDirection*d, triangles, triangleIntersection);
+      check_intersection = check_intersection && intersection;
+      intersectionArray[index] = triangleIntersection;
+      index += 1;
 
+      vec3 shadedPixel = DirectLight(triangleIntersection,triangles,shadowPixel);
+      if(shadowPixel){ shadedPixel = vec3(0,0,0); }
+      totalColor += triangles[triangleIntersection.triangleIndex].color*(shadedPixel+indirectLight);
+    }
   }
-
+  avgColor = vec3(totalColor.x / NUM_RAYS, totalColor.y / NUM_RAYS, totalColor.z / NUM_RAYS);
+  return avgColor;
 
 }
 
@@ -98,58 +119,15 @@ void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos, mat4& ca
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
 
-  float focalLength = SCREEN_WIDTH;
-  bool intersection_da;
-  bool intersection_db;
-  bool intersection_dc;
-  bool intersection_dd;
-  bool shadowPixel;
-  Intersection triangleIntersection_da;
-  Intersection triangleIntersection_db;
-  Intersection triangleIntersection_dc;
-  Intersection triangleIntersection_dd;
-
-
-
-
+  vector<Intersection> intersectionArray(NUM_RAYS);
+  bool all_intersections;
 
   for(int y = 0; y < screen->height; y++){ //int because size_t>0
     for(int x = 0; x < screen->width; x++){
-      vec4 da(x- SCREEN_WIDTH/2 + 0.25, y - SCREEN_HEIGHT/2 + 0.25, focalLength, 1);
-      vec4 db(x- SCREEN_WIDTH/2 + 0.25, y - SCREEN_HEIGHT/2 - 0.25, focalLength, 1);
-      vec4 dc(x- SCREEN_WIDTH/2 - 0.25, y - SCREEN_HEIGHT/2 - 0.25, focalLength, 1);
-      vec4 dd(x- SCREEN_WIDTH/2 - 0.25, y - SCREEN_HEIGHT/2 + 0.25, focalLength, 1);
-      intersection_da = ClosestIntersection(cameraPos, cameraDirection*da, triangles, triangleIntersection_da);
-      intersection_db = ClosestIntersection(cameraPos, cameraDirection*db, triangles, triangleIntersection_db);
-      intersection_dc = ClosestIntersection(cameraPos, cameraDirection*dc, triangles, triangleIntersection_dc);
-      intersection_dd = ClosestIntersection(cameraPos, cameraDirection*dd, triangles, triangleIntersection_dd);
 
-      bool intersection = intersection_da && intersection_db && intersection_dc && intersection_dd;
-
-      if(intersection){
-        vec3 avgColour;
-        vec3 temp_da =  triangles[triangleIntersection_da.triangleIndex].color;
-        vec3 temp_dd =  triangles[triangleIntersection_dd.triangleIndex].color;
-        vec3 temp_db =  triangles[triangleIntersection_db.triangleIndex].color;
-        vec3 temp_dc =  triangles[triangleIntersection_dc.triangleIndex].color;
-
-        avgColour = (temp_da + temp_db + temp_dc + temp_dd);
-        avgColour = vec3(avgColour.x / 4, avgColour.y/ 4, avgColour.z/4);
-
-        if(SHADOW_RENDER){
-          vec3 shadedPixel = DirectLight(triangleIntersection_da,triangles,shadowPixel);
-          if(shadowPixel){
-            shadedPixel = vec3(0,0,0);
-          }
-        }
-        if(SHADOW_RENDER){
-          // PutPixelSDL(screen, x, y, triangles[triangleIntersection.triangleIndex].color*(shadedPixel+indirectLight));
-          //  /(triangleIntersection.distance*100)); //gives depth by reducing color of pixels further away
-        }
-        else {
-          PutPixelSDL(screen, x, y, avgColour);
-        }
-        // triangles[triangleIntersection.triangleIndex].color
+      vec3 avgColour = getAntiAliasingAvg(x, y, triangles, cameraPos, cameraDirection, intersectionArray, all_intersections);
+      if(all_intersections){
+        PutPixelSDL(screen, x, y, avgColour);
       }
     }
   }
