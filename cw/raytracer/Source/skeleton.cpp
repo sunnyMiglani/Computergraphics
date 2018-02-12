@@ -14,11 +14,11 @@ using glm::vec4;
 using glm::mat4;
 
 
-#define SCREEN_WIDTH 64
-#define SCREEN_HEIGHT 64
-#define FULLSCREEN_MODE true
+#define SCREEN_WIDTH 320
+#define SCREEN_HEIGHT 320
+#define FULLSCREEN_MODE false
 #define CHECKING_KEY_STATE true
-
+#define SHADOW_RENDER false
 
 
 struct Intersection
@@ -74,6 +74,21 @@ int main( int argc, char* argv[] )
 }
 
 
+void getAntiAliasingAvg(vector<Triange>& triangles, vec4& cameraPos, mat4& cameraDirection, int numOfSamples){
+  Intersection intersectionArray[numOfSamples];
+  bool boolArray[numOfSamples];
+  vec4 vec4Array[numOfSamples];
+
+  for(int i=0; i< numOfSamples; i++){
+
+    // vec4 da(x- SCREEN_WIDTH/2 + 0.25, y - SCREEN_HEIGHT/2 + 0.25, focalLength, 1);
+
+  }
+
+
+}
+
+
 
 
 
@@ -96,6 +111,8 @@ void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos, mat4& ca
 
 
 
+
+
   for(int y = 0; y < screen->height; y++){ //int because size_t>0
     for(int x = 0; x < screen->width; x++){
       vec4 da(x- SCREEN_WIDTH/2 + 0.25, y - SCREEN_HEIGHT/2 + 0.25, focalLength, 1);
@@ -110,7 +127,6 @@ void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos, mat4& ca
       bool intersection = intersection_da && intersection_db && intersection_dc && intersection_dd;
 
       if(intersection){
-        // vec3 shadedPixel = DirectLight(triangleIntersection,triangles,shadowPixel);
         vec3 avgColour;
         vec3 temp_da =  triangles[triangleIntersection_da.triangleIndex].color;
         vec3 temp_dd =  triangles[triangleIntersection_dd.triangleIndex].color;
@@ -120,14 +136,20 @@ void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos, mat4& ca
         avgColour = (temp_da + temp_db + temp_dc + temp_dd);
         avgColour = vec3(avgColour.x / 4, avgColour.y/ 4, avgColour.z/4);
 
-
-        // if(shadowPixel){
-        //   shadedPixel = vec3(0,0,0);
-        // }
-        PutPixelSDL(screen, x, y, avgColour);
-        // PutPixelSDL(screen, x, y, triangles[triangleIntersection.triangleIndex].color*(shadedPixel+indirectLight));
+        if(SHADOW_RENDER){
+          vec3 shadedPixel = DirectLight(triangleIntersection_da,triangles,shadowPixel);
+          if(shadowPixel){
+            shadedPixel = vec3(0,0,0);
+          }
+        }
+        if(SHADOW_RENDER){
+          // PutPixelSDL(screen, x, y, triangles[triangleIntersection.triangleIndex].color*(shadedPixel+indirectLight));
+          //  /(triangleIntersection.distance*100)); //gives depth by reducing color of pixels further away
+        }
+        else {
+          PutPixelSDL(screen, x, y, avgColour);
+        }
         // triangles[triangleIntersection.triangleIndex].color
-        //  /(triangleIntersection.distance*100)); //gives depth by reducing color of pixels further away
       }
     }
   }
