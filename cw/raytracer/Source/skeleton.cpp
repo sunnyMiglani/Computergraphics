@@ -5,6 +5,7 @@
 #include "TestModelH.h"
 #include <stdint.h>
 #include "limits"
+#include <omp.h>
 
 
 using namespace std;
@@ -92,6 +93,7 @@ vec3 getAntiAliasingAvg(int x, int y, vector<Triangle>& triangles, vec4& cameraP
   Intersection triangleIntersection;
   int numForAvg = 0;
 
+  // #pragma omp parallel for
   for(float j = -offset; j <= offset; j += interval) {
     for(float i = -offset; i <= offset; i += interval) {
       vec4 d(x- SCREEN_WIDTH/2 + i, y - SCREEN_HEIGHT/2 + j, focalLength, 1);
@@ -128,6 +130,7 @@ void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos, mat4& ca
   vector<Intersection> intersectionArray(NUM_RAYS);
   bool all_intersections;
 
+  #pragma omp parallel for
   for(int y = 0; y < screen->height; y++){ //int because size_t>0
     for(int x = 0; x < screen->width; x++){
 
