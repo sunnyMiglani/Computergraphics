@@ -14,12 +14,12 @@ using glm::vec4;
 using glm::mat4;
 
 
-#define SCREEN_WIDTH 320
-#define SCREEN_HEIGHT 320
-#define FULLSCREEN_MODE false
+#define SCREEN_WIDTH 480
+#define SCREEN_HEIGHT 480
+#define FULLSCREEN_MODE true
 #define CHECKING_KEY_STATE true
 #define SHADOW_RENDER false
-#define NUM_RAYS 4
+#define NUM_RAYS 25
 
 
 struct Intersection
