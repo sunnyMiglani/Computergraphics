@@ -26,7 +26,7 @@ using glm::mat4;
 struct Intersection
 {
   vec4 position;
-  float distance;
+  float distance; // potato
   int triangleIndex;
 };
 
@@ -55,6 +55,8 @@ mat4 cameraDirection =  rotation(0);
 vec4 cameraPos(0, 0, -3, 1); // TODO: Make structure for camera and all these things to it
 vec3 indirectLight = 0.5f * vec3(1, 1, 1);
 float focalLength = SCREEN_WIDTH;
+float offset = 0.5-1/(sqrt(NUM_RAYS)*2);
+float interval = 1/sqrt(NUM_RAYS);
 
 
 
@@ -83,8 +85,7 @@ vec3 getAntiAliasingAvg(int x, int y, vector<Triangle>& triangles, vec4& cameraP
                         mat4& cameraDirection, vector<Intersection>& intersectionArray, bool &check_intersection){
 
   check_intersection = true;
-  float offset = 0.5-1/(sqrt(NUM_RAYS)*2);
-  float interval = 1/sqrt(NUM_RAYS);
+
   vec3 totalColor = vec3(0.0,0.0,0.0);
   vec3 avgColor;
   int index = 0;
@@ -93,7 +94,6 @@ vec3 getAntiAliasingAvg(int x, int y, vector<Triangle>& triangles, vec4& cameraP
   Intersection triangleIntersection;
   int numForAvg = 0;
 
-  // #pragma omp parallel for
   for(float j = -offset; j <= offset; j += interval) {
     for(float i = -offset; i <= offset; i += interval) {
       vec4 d(x- SCREEN_WIDTH/2 + i, y - SCREEN_HEIGHT/2 + j, focalLength, 1);
