@@ -1,3 +1,4 @@
 *.o
 lectures/
 Makefile
+skeleton
