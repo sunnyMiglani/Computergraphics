@@ -5,18 +5,30 @@
 #include "TestModelH.h"
 #include <stdint.h>
 
-using namespace std;
+using std::vector;
 using glm::vec3;
 using glm::mat3;
 using glm::vec4;
 using glm::mat4;
+using glm::ivec2;
 
+namespace std
+{
+  std::ostream& operator<<(std::ostream& os, glm::vec4& p)
+  {
+    return os << "(" << p.x << ", " << p.y << ", " << p.z << ")";
+  }
+
+  std::ostream& operator<<(std::ostream& os, glm::ivec2& p)
+  {
+    return os << "(" << p.x << ", " << p.y << ")";
+  }
+};
 
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 256
 #define FULLSCREEN_MODE false
-#define FOCAL_LENGTH (SCREEN_HEIGHT/2)
-
+#define FOCAL_LENGTH (SCREEN_HEIGHT*0.98)
 
 struct Intersection
 {
@@ -31,7 +43,7 @@ struct Intersection
 
 void Update();
 void Draw(screen* screen);
-void VertexShader( vertices, projPos );
+void VertexShader( vec4 vertices, ivec2& projPos );
 
 /*
   ---------------------------------------------------
@@ -39,26 +51,20 @@ void VertexShader( vertices, projPos );
 */
 
 vector<Triangle> triangles;
-vec4 cameraPos( 0, 0, -3.001,1 );
+vec4 cameraPos( 0, 0, -3.001,1);
 
-
-
-void VertexShader( vertices, projPos ){
-  float x = (FOCAL_LENGTH * (vertices.x)/(vertices.z)) + (SCREEN_WIDTH/vertices.z);
-  float y = (FOCAL_LENGTH * (vertices.y)/(vertices.z)) + (SCREEN_HEIGHT/vertices.z);
-  projPos.x = x;
-  projPos.y = y;
+void VertexShader( vec4 vertices, ivec2& projPos ) {
+  // std::cout << vertices << std::endl;
+  vertices = vec4(vertices - cameraPos);
+  projPos.x = (FOCAL_LENGTH * (vertices.x)/(vertices.z)) + (SCREEN_WIDTH/2);
+  projPos.y = (FOCAL_LENGTH * (vertices.y)/(vertices.z)) + (SCREEN_HEIGHT/2);
+  // std::cout << projPos << std::endl;
 }
-
-
-
-
 
 int main( int argc, char* argv[] )
 {
 
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
-
   LoadTestModel(triangles);
 
 
@@ -75,7 +81,7 @@ int main( int argc, char* argv[] )
   return 0;
 }
 
-void Draw()
+void Draw(screen *screen)
 {
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
