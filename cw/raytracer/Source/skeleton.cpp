@@ -16,10 +16,10 @@ using glm::mat4;
 
 #define SCREEN_WIDTH 480
 #define SCREEN_HEIGHT 480
-#define FULLSCREEN_MODE true
+#define FULLSCREEN_MODE false
 #define CHECKING_KEY_STATE true
 #define SHADOW_RENDER false
-#define NUM_RAYS 25
+#define NUM_RAYS 10
 
 
 struct Intersection
@@ -90,21 +90,27 @@ vec3 getAntiAliasingAvg(int x, int y, vector<Triangle>& triangles, vec4& cameraP
   bool shadowPixel;
   bool intersection;
   Intersection triangleIntersection;
+  int numForAvg = 0;
 
   for(float j = -offset; j <= offset; j += interval) {
     for(float i = -offset; i <= offset; i += interval) {
       vec4 d(x- SCREEN_WIDTH/2 + i, y - SCREEN_HEIGHT/2 + j, focalLength, 1);
       intersection = ClosestIntersection(cameraPos, cameraDirection*d, triangles, triangleIntersection);
       check_intersection = check_intersection && intersection;
+      if(!intersection) { continue;}
+      // if(!check_intersection){
+      //   std::cout << "Found a non intersection!" << '\n';
+      // }
       intersectionArray[index] = triangleIntersection;
       index += 1;
 
       vec3 shadedPixel = DirectLight(triangleIntersection,triangles,shadowPixel);
       if(shadowPixel){ shadedPixel = vec3(0,0,0); }
+      numForAvg+=1;
       totalColor += triangles[triangleIntersection.triangleIndex].color*(shadedPixel+indirectLight);
     }
   }
-  avgColor = vec3(totalColor.x / NUM_RAYS, totalColor.y / NUM_RAYS, totalColor.z / NUM_RAYS);
+  avgColor = vec3(totalColor.x / (numForAvg), totalColor.y / (numForAvg), totalColor.z / (numForAvg));
   return avgColor;
 
 }
@@ -126,9 +132,9 @@ void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos, mat4& ca
     for(int x = 0; x < screen->width; x++){
 
       vec3 avgColour = getAntiAliasingAvg(x, y, triangles, cameraPos, cameraDirection, intersectionArray, all_intersections);
-      if(all_intersections){
+      // if(all_intersections){
         PutPixelSDL(screen, x, y, avgColour);
-      }
+      // }
     }
   }
 }
@@ -189,28 +195,7 @@ void Update(vec4& cameraPos, mat4& cameraDirection)
   }
 }
 
-/**
 
-  Anti Aliasing :
-
-  Really pretty :
-  SSAA -> Super sampling anti Aliasing (Pretttyyyy)
-  TSAA -> ?  ??  ? ?
-  - Can claim for anti alisaing twice if diff algorithms
-  fx-aa (rasteuriszer##)
-  MSAA < - Expensive? (multi sample aa)
-
-  Anti Aliasing with SSAA:
-  1. Take 3 rays instead of one, take some "random" position
-  From the "random" positions, sample and take average
-
-  2.
-
-
-
-
-
-**/
 
 
 bool ClosestIntersection(vec4 start,vec4 dir,const vector<Triangle>& triangles,Intersection& closestIntersection ){
@@ -229,9 +214,6 @@ bool ClosestIntersection(vec4 start,vec4 dir,const vector<Triangle>& triangles,I
 
     mat3 A(-vec3(dir), e1, e2);
     vec3 x = glm::inverse(A)*b;
-
-
-
 
     float t = x.x;
     float u = x.y;
