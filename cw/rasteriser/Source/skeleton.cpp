@@ -178,7 +178,7 @@ void DrawLineSDL( screen* screen, ivec2 a, ivec2 b, vec3 color ){
   int pixels = glm::max(delta.x, delta.y) + 1;
   vector<ivec2> line(pixels);
   Interpolate(a, b, line);
-  for(int i = 0; i < line.size(); i++){
+  for(uint i = 0; i < line.size(); i++){
     PutPixelSDL(screen, line[i].x, line[i].y, color);
   }
 }
