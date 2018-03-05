@@ -62,6 +62,7 @@ glm::mat4 R;
 float yaw = 0; // Yaw angle controlling camera rotation around y-axis
 mat4 cameraDirection =  rotation(0);
 
+
 void VertexShader(vec4 vertices, ivec2& projPos) {
   // std::cout << vertices << std::endl;
   vertices = vec4(cameraDirection*vec4(vertices - cameraPos));
@@ -75,6 +76,8 @@ int main(int argc, char* argv[])
 
   screen *screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
   LoadTestModel(triangles);
+
+
 
 
   while(NoQuitMessageSDL())
@@ -92,6 +95,9 @@ int main(int argc, char* argv[])
 
 void Draw(screen *screen)
 {
+  vector<ivec2> leftPixels(SCREEN_HEIGHT);
+  vector<ivec2> rightPixels(SCREEN_HEIGHT);
+
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
   for(uint32_t i=0; i<triangles.size(); ++i)
@@ -103,6 +109,7 @@ void Draw(screen *screen)
     vertices[2] = triangles[i].v2;
 
     DrawPolygonEdges(vertices, screen);
+    ComputePolygonRows(vertices, leftPixels, rightPixels);
 
   }
 }
@@ -205,4 +212,52 @@ mat4 rotation(float yaw){
           -sin(yaw), 0, cos(yaw), 0,
               0    , 0,    0    , 1);
   return R_y;
+}
+
+void ComputePolygonRows(const vector<ivec2>& vertexPixels,vector<ivec2>& leftPixels,vector<ivec2>& rightPixels )
+{
+
+
+// // 1. Find max and min y-value of the polygon
+// //and compute the number of rows it occupies.
+
+  int maxVal = -numeric_limits<int>::max();
+  int minVal = +numeric_limits<int>::max();
+  for(int i = 0; i < vertexPixels.size(); i++){
+    maxVal = max(maxVal,vertexPixels.y);
+    minVal = min(minVal,vertexPixels.y);
+  }
+
+
+  int numOfRows = maxVal - minVal + 1;
+
+
+// // 2. Resize leftPixels and rightPixels
+// //so that they have an element for each row.
+
+for (int i =0; i <numOfRows; ++i){
+  leftPixels[i].x = +numeric_limits<int>::max();
+  rightPixels[i].x = -numeric_limits<int>::max();
+  }
+//
+//
+// // // 3. Initialize the x-coordinates in leftPixels
+// // to some really large value and the x-coordinates
+// // in rightPixels to some really small value.
+//
+// for (int i =0; i <numOfRows; ++i){
+//   leftPixels[i].x = +numeric_limits<int>::max();
+//   rightPixels[i].x = -numeric_limits<int>::max();
+// }
+
+
+
+
+// // 4. Loop through all edges of the polygon and use
+// linear interpolation to find the x-coordinate for
+// each row it occupies. Update the corresponding
+// values in rightPixels and leftPixels.
+
+
+
 }
