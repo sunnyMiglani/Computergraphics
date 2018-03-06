@@ -217,47 +217,72 @@ mat4 rotation(float yaw){
 void ComputePolygonRows(const vector<ivec2>& vertexPixels,vector<ivec2>& leftPixels,vector<ivec2>& rightPixels )
 {
 
-
-// // 1. Find max and min y-value of the polygon
-// //and compute the number of rows it occupies.
-
   int maxVal = -numeric_limits<int>::max();
   int minVal = +numeric_limits<int>::max();
   for(int i = 0; i < vertexPixels.size(); i++){
     maxVal = max(maxVal,vertexPixels.y);
     minVal = min(minVal,vertexPixels.y);
   }
+  // int numOfRows = maxVal - minVal + 1;
 
+  ivec2 v0 = vertexPixels[0];
+  ivec2 v1 = vertexPixels[1];
+  ivec2 v2 = vertexPixels[2];
 
-  int numOfRows = maxVal - minVal + 1;
+  vec2 e1 = vec2(v1.x-v0.x, v1.y-v0.y);
+  vec2 e2 = vec2(v2.x-v0.x, v2.y-v0.y);
 
+  for(size_t u = 0; u < glm::length(e1); ++u){
+    for(size_t v =0 ; v < glm::length(e2); ++v){
 
-// // 2. Resize leftPixels and rightPixels
-// //so that they have an element for each row.
-
-for (int i =0; i <numOfRows; ++i){
-  leftPixels[i].x = +numeric_limits<int>::max();
-  rightPixels[i].x = -numeric_limits<int>::max();
+    }
   }
-//
-//
-// // // 3. Initialize the x-coordinates in leftPixels
-// // to some really large value and the x-coordinates
-// // in rightPixels to some really small value.
-//
-// for (int i =0; i <numOfRows; ++i){
-//   leftPixels[i].x = +numeric_limits<int>::max();
-//   rightPixels[i].x = -numeric_limits<int>::max();
-// }
 
 
-
-
-// // 4. Loop through all edges of the polygon and use
-// linear interpolation to find the x-coordinate for
-// each row it occupies. Update the corresponding
-// values in rightPixels and leftPixels.
 
 
 
 }
+
+
+// // // 1. Find max and min y-value of the polygon
+// // //and compute the number of rows it occupies.
+//
+//   int maxVal = -numeric_limits<int>::max();
+//   int minVal = +numeric_limits<int>::max();
+//   for(int i = 0; i < vertexPixels.size(); i++){
+//     maxVal = max(maxVal,vertexPixels.y);
+//     minVal = min(minVal,vertexPixels.y);
+//   }
+//
+//
+//   int numOfRows = maxVal - minVal + 1;
+//
+//
+// // // 2. Resize leftPixels and rightPixels
+// // //so that they have an element for each row.
+//
+// for (int i =0; i <numOfRows; ++i){
+//   leftPixels[i].x = +numeric_limits<int>::max();
+//   rightPixels[i].x = -numeric_limits<int>::max();
+//   }
+// //
+// //
+// // // // 3. Initialize the x-coordinates in leftPixels
+// // // to some really large value and the x-coordinates
+// // // in rightPixels to some really small value.
+// //
+// // for (int i =0; i <numOfRows; ++i){
+// //   leftPixels[i].x = +numeric_limits<int>::max();
+// //   rightPixels[i].x = -numeric_limits<int>::max();
+// // }
+//
+//
+//
+//
+// // // 4. Loop through all edges of the polygon and use
+// // linear interpolation to find the x-coordinate for
+// // each row it occupies. Update the corresponding
+// // values in rightPixels and leftPixels.
+//
+//  +

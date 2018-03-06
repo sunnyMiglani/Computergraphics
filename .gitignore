@@ -2,3 +2,5 @@
 lectures/
 Makefile
 skeleton
+*.tags
+*.tags*
