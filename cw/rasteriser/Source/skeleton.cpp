@@ -50,7 +50,7 @@ void DrawLineSDL( SDL_Surface* surface, ivec2 a, ivec2 b, vec3 color );
 void Interpolate( ivec2 a, ivec2 b, vector<ivec2>& result );
 void DrawPolygonEdges( const vector<vec4>& vertices , screen* screen);
 mat4 rotation(float yaw);
-void BarycentricCoordinates(vector<vec4>& vertices, int x, int y, bool& pointInTriangle);
+void BarycentricCoordinates(vector<ivec2>& projectedVertices, int y, int x, bool& pointInTriangle);
 float edgeFunction(ivec2& a, ivec2& b, ivec2& c);
 void Barycentric(ivec2 a, ivec2 b, ivec2 c, ivec2 p, float &u, float &v, float &w);
 
@@ -91,29 +91,61 @@ void Draw(screen *screen)
 
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
-  for(int row = 0; row < screen->height; row++){
-    for(int col = 0; col < screen->width; col++){
-      for(uint32_t i=0; i<triangles.size(); ++i)
-      {
-        Triangle triangle = triangles[i];
-        bool pointInTriangle;
-        vector<vec4> vertices(3);
-        vector<ivec2> vecProjPos(3);
-        vertices[0] = triangle.v0;
-        vertices[1] = triangle.v1;
-        vertices[2] = triangle.v2;
 
-        // DrawPolygonEdges(vertices, screen);
-        // ComputePolygonRows(vertices, leftPixels, rightPixels);
-        BarycentricCoordinates(vertices, row, col, pointInTriangle);
+  bool pointInTriangle;
+
+  for(uint32_t i = 0; i < triangles.size(); i++){
+    Triangle triangle = triangles[i];
+    // Transform each vertex from 3D world position to 2D image position:
+    vector<ivec2> projectedVertices(3);
+    VertexShader(triangle.v0, projectedVertices[0]);
+    VertexShader(triangle.v1, projectedVertices[1]);
+    VertexShader(triangle.v2, projectedVertices[2]);
+
+    int maxX = -numeric_limits<int>::max();
+    int minX = +numeric_limits<int>::max();
+    int maxY = -numeric_limits<int>::max();
+    int minY = +numeric_limits<int>::max();
+    for(int i = 0; i < projectedVertices.size(); i++){
+      maxX = max(maxX,projectedVertices[i].y);
+      minX = min(minX,projectedVertices[i].y); // WTF WHY???
+      maxY = max(maxY,projectedVertices[i].x);
+      minY = min(minY,projectedVertices[i].x);
+    }
+    for(int row = minY; row < maxY; row++){
+      for(int col = minX; col < maxX; col++){
+        BarycentricCoordinates(projectedVertices, row, col, pointInTriangle);
         if(pointInTriangle){
           PutPixelSDL(screen, row, col, triangle.color);
           //break;
         }
-
       }
     }
   }
+
+  // for(int row = 0; row < screen->height; row++){
+  //   for(int col = 0; col < screen->width; col++){
+  //     for(uint32_t i=0; i<triangles.size(); ++i)
+  //     {
+  //       Triangle triangle = triangles[i];
+  //       bool pointInTriangle;
+  //       vector<vec4> vertices(3);
+  //       vector<ivec2> vecProjPos(3);
+  //       vertices[0] = triangle.v0;
+  //       vertices[1] = triangle.v1;
+  //       vertices[2] = triangle.v2;
+  //
+  //       // DrawPolygonEdges(vertices, screen);
+  //       // ComputePolygonRows(vertices, leftPixels, rightPixels);
+  //       BarycentricCoordinates(vertices, row, col, pointInTriangle);
+  //       if(pointInTriangle){
+  //         PutPixelSDL(screen, row, col, triangle.color);
+  //         //break;
+  //       }
+  //
+  //     }
+  //   }
+  // }
 
 }
 /*Place updates of parameters here*/
@@ -225,32 +257,6 @@ mat4 rotation(float yaw){
   return R_y;
 }
 
-// void ComputePolygonRows(const vector<ivec2>& vertexPixels,vector<ivec2>& leftPixels,vector<ivec2>& rightPixels )
-// {
-//
-//   int maxVal = -numeric_limits<int>::max();
-//   int minVal = +numeric_limits<int>::max();
-//   for(int i = 0; i < vertexPixels.size(); i++){
-//     maxVal = max(maxVal,vertexPixels.y);
-//     minVal = min(minVal,vertexPixels.y);
-//   }
-//   // int numOfRows = maxVal - minVal + 1;
-//
-//   ivec2 v0 = vertexPixels[0];
-//   ivec2 v1 = vertexPixels[1];
-//   ivec2 v2 = vertexPixels[2];
-//
-//   vec2 e1 = vec2(v1.x-v0.x, v1.y-v0.y);
-//   vec2 e2 = vec2(v2.x-v0.x, v2.y-v0.y);
-//
-//   for(size_t u = 0; u < glm::length(e1); ++u){
-//     for(size_t v =0 ; v < glm::length(e2); ++v){
-//
-//     }
-//   }
-// }
-
-
 float edgeFunction(ivec2& a, ivec2& b, ivec2& c)
 {
   // ivec2 temp = a;
@@ -261,14 +267,7 @@ float edgeFunction(ivec2& a, ivec2& b, ivec2& c)
 }
 
 //https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/rasterization-stage
-void BarycentricCoordinates(vector<vec4>& vertices, int y, int x, bool& pointInTriangle){ // p is a pixel or point in triangle
-  int V = vertices.size();
-  // Transform each vertex from 3D world position to 2D image position:
-  vector<ivec2> projectedVertices(V);
-  for(int i=0; i<V; ++i){
-    VertexShader(vertices[i], projectedVertices[i]);
-  }
-
+void BarycentricCoordinates(vector<ivec2>& projectedVertices, int y, int x, bool& pointInTriangle){ // p is a pixel or point in triangle
   float u;
   float v;
   float w;
@@ -277,11 +276,9 @@ void BarycentricCoordinates(vector<vec4>& vertices, int y, int x, bool& pointInT
   ivec2 v0 = projectedVertices[0];
   ivec2 v1 = projectedVertices[1];
   ivec2 v2 = projectedVertices[2];
+  pointInTriangle = false;
 
   Barycentric(v0, v1, v2, p, u, v, w);
-
-
-  pointInTriangle = false;
   // ivec2 p(y, x);
   // ivec2 v0 = projectedVertices[0];
   // ivec2 v1 = projectedVertices[1];
