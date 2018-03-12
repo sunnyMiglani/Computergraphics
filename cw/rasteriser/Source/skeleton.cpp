@@ -39,6 +39,13 @@ struct Intersection
   int triangleIndex;
 };
 
+struct pixel
+{
+  int x;
+  int y;
+  float zinv;
+}
+
 
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
@@ -46,8 +53,10 @@ struct Intersection
 void Update(vec4& cameraPos, mat4& cameraDirection);
 void Draw(screen* screen);
 void VertexShader( vec4 vertices, ivec2& projPos );
+void VertexShader_d(const vec4& v, Pixel p);
 void DrawLineSDL( SDL_Surface* surface, ivec2 a, ivec2 b, vec3 color );
 void Interpolate( ivec2 a, ivec2 b, vector<ivec2>& result );
+void Interpolate_d(Pixel a, Pixel b, vector<Pixel>& result);
 void DrawPolygonEdges( const vector<vec4>& vertices , screen* screen);
 mat4 rotation(float yaw);
 void BarycentricCoordinates(vector<ivec2>& projectedVertices, int y, int x, bool& pointInTriangle);
@@ -64,6 +73,7 @@ vec4 cameraPos( 0, 0, -3.001,1);
 glm::mat4 R;
 float yaw = 0; // Yaw angle controlling camera rotation around y-axis
 mat4 cameraDirection =  rotation(0);
+float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 
 int main(int argc, char* argv[])
 {
@@ -89,6 +99,12 @@ void Draw(screen *screen)
   vector<ivec2> leftPixels(SCREEN_HEIGHT);
   vector<ivec2> rightPixels(SCREEN_HEIGHT);
 
+  for(int y = 0; y < SCREEN_HEIGHT; y++){
+    for(int x = 0; x < SCREEN_WIDTH; x++){
+      depthBuffer[y][x] = 0;
+    }
+  }
+
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
 
@@ -97,23 +113,30 @@ void Draw(screen *screen)
   for(uint32_t i = 0; i < triangles.size(); i++){
     Triangle triangle = triangles[i];
     // Transform each vertex from 3D world position to 2D image position:
-    vector<ivec2> projectedVertices(3);
-    VertexShader(triangle.v0, projectedVertices[0]);
-    VertexShader(triangle.v1, projectedVertices[1]);
-    VertexShader(triangle.v2, projectedVertices[2]);
+    vector<Pixel> vertexPixels(3);
+    VertexShader_d(triangle.v0, vertexPixels[0]);
+    VertexShader_d(triangle.v1, vertexPixels[1]);
+    VertexShader_d(triangle.v2, vertexPixels[2]);
+
+    Interpolate()
 
     int maxX = -numeric_limits<int>::max();
     int minX = +numeric_limits<int>::max();
     int maxY = -numeric_limits<int>::max();
     int minY = +numeric_limits<int>::max();
-    for(int i = 0; i < projectedVertices.size(); i++){
-      maxX = max(maxX,projectedVertices[i].y);
-      minX = min(minX,projectedVertices[i].y); // WTF WHY???
-      maxY = max(maxY,projectedVertices[i].x);
-      minY = min(minY,projectedVertices[i].x);
+
+    for(int i = 0; i < vertexPixels.size(); i++){
+      maxX = max(maxX,vertexPixels[i].y);
+      minX = min(minX,vertexPixels[i].y); // WTF WHY???
+      maxY = max(maxY,vertexPixels[i].x);
+      minY = min(minY,vertexPixels[i].x);
+
     }
     for(int row = minY; row < maxY; row++){
       for(int col = minX; col < maxX; col++){
+        for(float z = max)
+        Pixel p(row, col, )
+        depthBuffer[row][col] =
         BarycentricCoordinates(projectedVertices, row, col, pointInTriangle);
         if(pointInTriangle){
           PutPixelSDL(screen, row, col, triangle.color);
@@ -210,6 +233,23 @@ void VertexShader(vec4 vertices, ivec2& projPos) {
   projPos.x = (FOCAL_LENGTH * (vertices.x)/(vertices.z)) + (SCREEN_WIDTH/2);
   projPos.y = (FOCAL_LENGTH * (vertices.y)/(vertices.z)) + (SCREEN_HEIGHT/2);
   // std::cout << projPos << std::endl;
+}
+
+void VertexShader_d(const vec4& vertices, Pixel p){
+  vertices = vec4(cameraDirection*vec4(vertices - cameraPos));
+  p.x = (FOCAL_LENGTH * (vertices.x)/(vertices.z)) + (SCREEN_WIDTH/2);
+  p.y = (FOCAL_LENGTH * (vertices.y)/(vertices.z)) + (SCREEN_HEIGHT/2);
+  p.zinv = 1/vertices.z
+}
+
+void Interpolate_d(Pixel a, Pixel b, vector<Pixel>& result){
+  int N = result.size();
+  Pixel step = Pixel(b - a) / float(glm::max(N-1,1));
+  Pixel current( a );
+  for( int i=0; i<N; ++i ){
+    result[i] = current;
+    current += step;
+  }
 }
 
 void Interpolate( ivec2 a, ivec2 b, vector<ivec2>& result )
