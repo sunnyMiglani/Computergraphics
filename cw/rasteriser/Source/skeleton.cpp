@@ -39,12 +39,12 @@ struct Intersection
   int triangleIndex;
 };
 
-struct pixel
+struct Pixel
 {
   int x;
   int y;
   float zinv;
-}
+};
 
 
 /* ----------------------------------------------------------------------------*/
@@ -53,15 +53,16 @@ struct pixel
 void Update(vec4& cameraPos, mat4& cameraDirection);
 void Draw(screen* screen);
 void VertexShader( vec4 vertices, ivec2& projPos );
-void VertexShader_d(const vec4& v, Pixel p);
+void VertexShader_d(vec4& v, Pixel& p);
 void DrawLineSDL( SDL_Surface* surface, ivec2 a, ivec2 b, vec3 color );
 void Interpolate( ivec2 a, ivec2 b, vector<ivec2>& result );
 void Interpolate_d(Pixel a, Pixel b, vector<Pixel>& result);
 void DrawPolygonEdges( const vector<vec4>& vertices , screen* screen);
 mat4 rotation(float yaw);
-void BarycentricCoordinates(vector<ivec2>& projectedVertices, int y, int x, bool& pointInTriangle);
+void BarycentricCoordinates(vector<Pixel>& vertexPixels, int y, int x, bool& pointInTriangle, Pixel& pixel);
 float edgeFunction(ivec2& a, ivec2& b, ivec2& c);
-void Barycentric(ivec2 a, ivec2 b, ivec2 c, ivec2 p, float &u, float &v, float &w);
+void Barycentric(Pixel a, Pixel b, Pixel c, ivec2 p, float &u, float &v, float &w);
+
 
 /*
   ---------------------------------------------------
@@ -101,7 +102,7 @@ void Draw(screen *screen)
 
   for(int y = 0; y < SCREEN_HEIGHT; y++){
     for(int x = 0; x < SCREEN_WIDTH; x++){
-      depthBuffer[y][x] = 0;
+      depthBuffer[y][x] = -numeric_limits<int>::max();
     }
   }
 
@@ -118,57 +119,33 @@ void Draw(screen *screen)
     VertexShader_d(triangle.v1, vertexPixels[1]);
     VertexShader_d(triangle.v2, vertexPixels[2]);
 
-    Interpolate()
 
     int maxX = -numeric_limits<int>::max();
     int minX = +numeric_limits<int>::max();
     int maxY = -numeric_limits<int>::max();
     int minY = +numeric_limits<int>::max();
 
-    for(int i = 0; i < vertexPixels.size(); i++){
+    for(size_t i = 0; i < vertexPixels.size(); i++){
       maxX = max(maxX,vertexPixels[i].y);
       minX = min(minX,vertexPixels[i].y); // WTF WHY???
       maxY = max(maxY,vertexPixels[i].x);
       minY = min(minY,vertexPixels[i].x);
 
     }
-    for(int row = minY; row < maxY; row++){
+    for(int row = minY; row < maxY; row++){ // looping through the square
       for(int col = minX; col < maxX; col++){
-        for(float z = max)
-        Pixel p(row, col, )
-        depthBuffer[row][col] =
-        BarycentricCoordinates(projectedVertices, row, col, pointInTriangle);
-        if(pointInTriangle){
-          PutPixelSDL(screen, row, col, triangle.color);
-          //break;
-        }
+          Pixel tPixel;
+          BarycentricCoordinates(vertexPixels, row, col, pointInTriangle, tPixel);
+          if(pointInTriangle){
+              if(tPixel.zinv > depthBuffer[row][col]){
+                  depthBuffer[row][col] = tPixel.zinv;
+                  PutPixelSDL(screen, row, col, triangle.color);
+                }
+            }
       }
     }
   }
 
-  // for(int row = 0; row < screen->height; row++){
-  //   for(int col = 0; col < screen->width; col++){
-  //     for(uint32_t i=0; i<triangles.size(); ++i)
-  //     {
-  //       Triangle triangle = triangles[i];
-  //       bool pointInTriangle;
-  //       vector<vec4> vertices(3);
-  //       vector<ivec2> vecProjPos(3);
-  //       vertices[0] = triangle.v0;
-  //       vertices[1] = triangle.v1;
-  //       vertices[2] = triangle.v2;
-  //
-  //       // DrawPolygonEdges(vertices, screen);
-  //       // ComputePolygonRows(vertices, leftPixels, rightPixels);
-  //       BarycentricCoordinates(vertices, row, col, pointInTriangle);
-  //       if(pointInTriangle){
-  //         PutPixelSDL(screen, row, col, triangle.color);
-  //         //break;
-  //       }
-  //
-  //     }
-  //   }
-  // }
 
 }
 /*Place updates of parameters here*/
@@ -235,22 +212,14 @@ void VertexShader(vec4 vertices, ivec2& projPos) {
   // std::cout << projPos << std::endl;
 }
 
-void VertexShader_d(const vec4& vertices, Pixel p){
+void VertexShader_d(vec4& vertices, Pixel& p){
   vertices = vec4(cameraDirection*vec4(vertices - cameraPos));
   p.x = (FOCAL_LENGTH * (vertices.x)/(vertices.z)) + (SCREEN_WIDTH/2);
   p.y = (FOCAL_LENGTH * (vertices.y)/(vertices.z)) + (SCREEN_HEIGHT/2);
-  p.zinv = 1/vertices.z
+  p.zinv = 1.0f/vertices.z;
 }
 
-void Interpolate_d(Pixel a, Pixel b, vector<Pixel>& result){
-  int N = result.size();
-  Pixel step = Pixel(b - a) / float(glm::max(N-1,1));
-  Pixel current( a );
-  for( int i=0; i<N; ++i ){
-    result[i] = current;
-    current += step;
-  }
-}
+// go donk yourself
 
 void Interpolate( ivec2 a, ivec2 b, vector<ivec2>& result )
 {
@@ -306,50 +275,44 @@ float edgeFunction(ivec2& a, ivec2& b, ivec2& c)
   // return (a.x - b.x) * (c.y - a.y) - (a.y - b.y) * (c.x - a.x);
 }
 
+
+float calculateDepth(float v0_d,float v1_d,float v2_d, float u, float v, float w){
+
+    float this_depth = (v0_d * u +  v1_d * v + v2_d * w);
+    return this_depth;
+}
+
 //https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/rasterization-stage
-void BarycentricCoordinates(vector<ivec2>& projectedVertices, int y, int x, bool& pointInTriangle){ // p is a pixel or point in triangle
+void BarycentricCoordinates(vector<Pixel>& vertexPixels, int y, int x, bool& pointInTriangle, Pixel& pixel){ // p is a pixel or point in triangle
   float u;
   float v;
   float w;
 
   ivec2 p(y, x);
-  ivec2 v0 = projectedVertices[0];
-  ivec2 v1 = projectedVertices[1];
-  ivec2 v2 = projectedVertices[2];
+  Pixel v0 = vertexPixels[0];
+  Pixel v1 = vertexPixels[1];
+  Pixel v2 = vertexPixels[2];
   pointInTriangle = false;
 
+  /// TODO: Could be y,x instead of x,y
+  pixel.x = x;
+  pixel.y = y;
+
   Barycentric(v0, v1, v2, p, u, v, w);
-  // ivec2 p(y, x);
-  // ivec2 v0 = projectedVertices[0];
-  // ivec2 v1 = projectedVertices[1];
-  // ivec2 v2 = projectedVertices[2];
-  // float area = edgeFunction(v0, v1, v2); // area of the triangle multiplied by 2
-  // float w0 = edgeFunction(v1, v0, p);
-  // float w1 = edgeFunction(v0, v2, p);
-  // float w2 = edgeFunction(v2, v1, p);
-  // cout << "u: " << u << endl;
-  // cout << "v: " << v << endl;
-  // cout << "w: " << w << endl;
+  pixel.zinv = calculateDepth(v0.zinv, v1.zinv, v2.zinv, u,v,w);
 
   // if point p is inside triangles defined by vertices v0, v1, v2
   if (u >= 0 && u <= 1 && v >= 0 && v <= 1 && w >= 0 && w <= 1) {
     pointInTriangle = true;
-    // cout << "u: " << u << endl;
-    // cout << "v: " << v << endl;
-    // cout << "w: " << w << endl;
-    // barycentric coordinates are the areas of the sub-triangles divided by the area of the main triangle
-    // u /= area;
-    // v /= area;
-    // w /= area;
   }
 }
 
 // Compute barycentric coordinates (u, v, w) for
 // point p with respect to triangle (a, b, c)
 // http://www.r-5.org/files/books/computers/algo-list/realtime-3d/Christer_Ericson-Real-Time_Collision_Detection-EN.pdf
-void Barycentric(ivec2 a, ivec2 b, ivec2 c, ivec2 p, float &u, float &v, float &w)
+void Barycentric(Pixel a, Pixel b, Pixel c, ivec2 p, float &u, float &v, float &w)
 {
-  vec2 e0 = b - a, e1 = c - a, e2 = p - a;
+  vec2 e0 = vec2((b.x - a.x),(b.y - a.y)), e1 = vec2((c.x - a.x),(c.y - a.y)), e2 = vec2((p.x - a.x),(p.y - a.y));
   float d00 = dot(e0, e0);
   float d01 = dot(e0, e1);
   float d11 = dot(e1, e1);
@@ -360,47 +323,3 @@ void Barycentric(ivec2 a, ivec2 b, ivec2 c, ivec2 p, float &u, float &v, float &
   w = (d00 * d21 - d01 * d20) / denom;
   u = 1.0f - v - w;
 }
-
-
-
-// // // 1. Find max and min y-value of the polygon
-// // //and compute the number of rows it occupies.
-//
-//   int maxVal = -numeric_limits<int>::max();
-//   int minVal = +numeric_limits<int>::max();
-//   for(int i = 0; i < vertexPixels.size(); i++){
-//     maxVal = max(maxVal,vertexPixels.y);
-//     minVal = min(minVal,vertexPixels.y);
-//   }
-//
-//
-//   int numOfRows = maxVal - minVal + 1;
-//
-//
-// // // 2. Resize leftPixels and rightPixels
-// // //so that they have an element for each row.
-//
-// for (int i =0; i <numOfRows; ++i){
-//   leftPixels[i].x = +numeric_limits<int>::max();
-//   rightPixels[i].x = -numeric_limits<int>::max();
-//   }
-// //
-// //
-// // // // 3. Initialize the x-coordinates in leftPixels
-// // // to some really large value and the x-coordinates
-// // // in rightPixels to some really small value.
-// //
-// // for (int i =0; i <numOfRows; ++i){
-// //   leftPixels[i].x = +numeric_limits<int>::max();
-// //   rightPixels[i].x = -numeric_limits<int>::max();
-// // }
-//
-//
-//
-//
-// // // 4. Loop through all edges of the polygon and use
-// // linear interpolation to find the x-coordinate for
-// // each row it occupies. Update the corresponding
-// // values in rightPixels and leftPixels.
-//
-//  +
