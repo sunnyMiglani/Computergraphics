@@ -112,7 +112,6 @@ void Draw(screen *screen)
 
   bool pointInTriangle;
 
-  #pragma omp parallel for
   for(uint32_t i = 0; i < triangles.size(); i++){
     Triangle triangle = triangles[i];
     // Transform each vertex from 3D world position to 2D image position:
@@ -127,6 +126,7 @@ void Draw(screen *screen)
     int maxY = -numeric_limits<int>::max();
     int minY = +numeric_limits<int>::max();
 
+
     for(size_t i = 0; i < vertexPixels.size(); i++){
       maxX = max(maxX,vertexPixels[i].y);
       minX = min(minX,vertexPixels[i].y); // TODO: WTF WHY???
@@ -134,6 +134,7 @@ void Draw(screen *screen)
       minY = min(minY,vertexPixels[i].x);
 
     }
+    #pragma omp parallel for shared(depthBuffer)
     for(int row = minY; row < maxY; row++){ // looping through the square
       for(int col = minX; col < maxX; col++){
           Pixel tPixel;
