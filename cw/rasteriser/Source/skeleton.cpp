@@ -127,7 +127,7 @@ void Draw(screen *screen)
 
     for(size_t i = 0; i < vertexPixels.size(); i++){
       maxX = max(maxX,vertexPixels[i].y);
-      minX = min(minX,vertexPixels[i].y); // WTF WHY???
+      minX = min(minX,vertexPixels[i].y); // TODO: WTF WHY???
       maxY = max(maxY,vertexPixels[i].x);
       minY = min(minY,vertexPixels[i].x);
 
@@ -136,6 +136,10 @@ void Draw(screen *screen)
       for(int col = minX; col < maxX; col++){
           Pixel tPixel;
           BarycentricCoordinates(vertexPixels, row, col, pointInTriangle, tPixel);
+          if(row < 0 || row >= SCREEN_WIDTH || col < 0 || col >= SCREEN_HEIGHT){
+              // printf("Skipped due to out of bounds! \n" );
+              continue;
+          }
           if(pointInTriangle){
               if(tPixel.zinv > depthBuffer[row][col]){
                   depthBuffer[row][col] = tPixel.zinv;
@@ -219,7 +223,6 @@ void VertexShader_d(vec4& vertices, Pixel& p){
   p.zinv = 1.0f/vertices.z;
 }
 
-// go donk yourself
 
 void Interpolate( ivec2 a, ivec2 b, vector<ivec2>& result )
 {
@@ -294,7 +297,7 @@ void BarycentricCoordinates(vector<Pixel>& vertexPixels, int y, int x, bool& poi
   Pixel v2 = vertexPixels[2];
   pointInTriangle = false;
 
-  /// TODO: Could be y,x instead of x,y
+
   pixel.x = x;
   pixel.y = y;
 
