@@ -4,6 +4,7 @@
 #include "SDLauxiliary.h"
 #include "TestModelH.h"
 #include <stdint.h>
+#include <omp.h>
 
 using namespace std;
 using glm::vec3;
@@ -111,6 +112,7 @@ void Draw(screen *screen)
 
   bool pointInTriangle;
 
+  #pragma omp parallel for
   for(uint32_t i = 0; i < triangles.size(); i++){
     Triangle triangle = triangles[i];
     // Transform each vertex from 3D world position to 2D image position:
