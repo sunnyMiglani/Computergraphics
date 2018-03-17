@@ -76,6 +76,13 @@ glm::mat4 R;
 float yaw = 0; // Yaw angle controlling camera rotation around y-axis
 mat4 cameraDirection =  rotation(0);
 float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
+vec4 lightPos(0,-0.5,-0.7);
+vec3 lightPower = 1.1f*vec3( 1, 1, 1 );
+vec3 indirectLightPowerPerArea = 0.5f*vec3( 1, 1, 1 );
+
+/*
+ ----------------------------------------------------
+*/
 
 int main(int argc, char* argv[])
 {
@@ -127,6 +134,7 @@ void Draw(screen *screen)
     int minY = +numeric_limits<int>::max();
 
 
+    // Get the borders of the square for min_max values of the set of triangles.
     for(size_t i = 0; i < vertexPixels.size(); i++){
       maxX = max(maxX,vertexPixels[i].y);
       minX = min(minX,vertexPixels[i].y); // TODO: WTF WHY???
@@ -138,18 +146,23 @@ void Draw(screen *screen)
     for(int row = minY; row < maxY; row++){ // looping through the square
       for(int col = minX; col < maxX; col++){
           Pixel tPixel;
+          // Get the barycentric coordinates for that pixel,
+          // Check to see if the pixel is in the triangle given.
+          // Find the depth of the pixel for depth buffers.
+          // Vertex pixels define which triangle for the barycentric coords.
           BarycentricCoordinates(vertexPixels, row, col, pointInTriangle, tPixel);
           if(row < 0 || row >= SCREEN_WIDTH || col < 0 || col >= SCREEN_HEIGHT){
               // printf("Skipped due to out of bounds! \n" );
+              // stops segmentation faults
               continue;
-          }
+            }
           if(pointInTriangle){
               if(tPixel.zinv > depthBuffer[row][col]){
                   depthBuffer[row][col] = tPixel.zinv;
                   PutPixelSDL(screen, row, col, triangle.color);
                 }
             }
-      }
+        }
     }
   }
 
