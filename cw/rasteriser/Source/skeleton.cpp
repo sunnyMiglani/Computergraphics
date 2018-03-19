@@ -181,6 +181,8 @@ if(CHECKING_KEY_STATE){
     triangle.vertex2.normal = vec3(triangle.normal.x,triangle.normal.y,triangle.normal.z);
     triangle.vertex3.normal = vec3(triangle.normal.x,triangle.normal.y,triangle.normal.z);
 
+    
+
     vector<Pixel> vertexPixels(3);
     vector<vec3> vertexReflections(3);
     VertexShader_d(triangle.v0, vertexPixels[0], triangle.vertex1);
@@ -220,9 +222,9 @@ if(CHECKING_KEY_STATE){
           if(pointInTriangle){
               if(tPixel.zinv > depthBuffer[row][col]){
                   depthBuffer[row][col] = tPixel.zinv;
+                  // printf("Pixel illumination : %f %f %f\n",tPixel.illumination.x ,tPixel.illumination.y ,tPixel.illumination.z  );
                   vec3 pixelColour =triangle.color;
                   if(SHOW_LIGHT){pixelColour *=tPixel.illumination;}
-
                   PutPixelSDL(screen, row, col, pixelColour);
                 }
             }
@@ -276,6 +278,7 @@ void VertexShader_d(vec4& vertices, Pixel& p, Vertex& this_vert){
   p.y = (FOCAL_LENGTH * (vertices.y)/(vertices.z)) + (SCREEN_HEIGHT/2);
   p.zinv = 1.0f/vertices.z;
 
+  this_vert.pos = vec3(vertices.x,vertices.y,vertices.z);
   this_vert.pixelRep = p;
   getLightValue(this_vert);
 }
