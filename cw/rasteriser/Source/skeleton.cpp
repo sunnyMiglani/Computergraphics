@@ -77,7 +77,7 @@ vec3 lightPos(0,-0.5,-0.7);
 vec3 lightPower = 1.1f*vec3( 1, 1, 1 );
 vec3 indirectLightPowerPerArea = 0.7f*vec3( 1, 1, 1 );
 
-vec3 reflectanceGlobal = vec3(1.3,1.3,1.3);
+vec3 reflectanceGlobal = vec3(0.5,0.5,0.5);
 
 /*
  ----------------------------------------------------
@@ -176,7 +176,6 @@ if(CHECKING_KEY_STATE){
     Triangle triangle = triangles[i];
     // Transform each vertex from 3D world position to 2D image position:
 
-
     triangle.vertex1.normal = vec3(triangle.normal.x,triangle.normal.y,triangle.normal.z);
     triangle.vertex2.normal = vec3(triangle.normal.x,triangle.normal.y,triangle.normal.z);
     triangle.vertex3.normal = vec3(triangle.normal.x,triangle.normal.y,triangle.normal.z);
@@ -260,7 +259,7 @@ void VertexShader(vec4 vertices, ivec2& projPos) {
 void getLightValue(Vertex& this_vertex){
     vec3 normal = this_vertex.normal;
     vec3 pos = this_vertex.pos;
-    vec3 r_vec = vec3(lightPos - pos);
+    vec3 r_vec = normalize(lightPos - pos);
 
     float length_r = length(r_vec);
 
