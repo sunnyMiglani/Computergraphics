@@ -4,7 +4,6 @@
 #include "SDLauxiliary.h"
 #include "TestModelH.h"
 #include <stdint.h>
-#include <omp.h>
 
 using namespace std;
 using glm::vec3;
@@ -47,6 +46,12 @@ struct Pixel
   float zinv;
 };
 
+struct Vertex
+{
+    Pixel vertexPixel;
+    vec2 reflectance;
+};
+
 
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
@@ -71,11 +76,13 @@ void Barycentric(Pixel a, Pixel b, Pixel c, ivec2 p, float &u, float &v, float &
 */
 
 vector<Triangle> triangles;
+vector<Vertex> vertices;
 vec4 cameraPos( 0, 0, -3.001,1);
 glm::mat4 R;
 float yaw = 0; // Yaw angle controlling camera rotation around y-axis
 mat4 cameraDirection =  rotation(0);
 float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
+
 
 int main(int argc, char* argv[])
 {
@@ -96,7 +103,7 @@ int main(int argc, char* argv[])
   return 0;
 }
 
-void Draw(screen *screen)
+void Draw(screen *screen, )
 {
   vector<ivec2> leftPixels(SCREEN_HEIGHT);
   vector<ivec2> rightPixels(SCREEN_HEIGHT);
@@ -121,6 +128,8 @@ void Draw(screen *screen)
     VertexShader_d(triangle.v2, vertexPixels[2]);
 
 
+
+
     int maxX = -numeric_limits<int>::max();
     int minX = +numeric_limits<int>::max();
     int maxY = -numeric_limits<int>::max();
@@ -134,14 +143,13 @@ void Draw(screen *screen)
       minY = min(minY,vertexPixels[i].x);
 
     }
-    #pragma omp parallel for shared(depthBuffer)
+
     for(int row = minY; row < maxY; row++){ // looping through the square
       for(int col = minX; col < maxX; col++){
           Pixel tPixel;
           BarycentricCoordinates(vertexPixels, row, col, pointInTriangle, tPixel);
           if(row < 0 || row >= SCREEN_WIDTH || col < 0 || col >= SCREEN_HEIGHT){
-              // printf("Skipped due to out of bounds! \n" );
-              continue;
+            continue;
           }
           if(pointInTriangle){
               if(tPixel.zinv > depthBuffer[row][col]){
