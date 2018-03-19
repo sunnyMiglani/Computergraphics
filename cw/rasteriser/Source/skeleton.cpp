@@ -74,7 +74,7 @@ float yaw = 0; // Yaw angle controlling camera rotation around y-axis
 mat4 cameraDirection =  rotation(0);
 float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 vec3 lightPos(0,-0.5,-0.7);
-vec3 lightPower = 2.1f*vec3( 1, 1, 1 );
+vec3 lightPower = 1.1f*vec3( 1, 1, 1 );
 vec3 indirectLightPowerPerArea = 0.7f*vec3( 1, 1, 1 );
 
 vec3 reflectanceGlobal = vec3(1.3,1.3,1.3);
@@ -181,7 +181,7 @@ if(CHECKING_KEY_STATE){
     triangle.vertex2.normal = vec3(triangle.normal.x,triangle.normal.y,triangle.normal.z);
     triangle.vertex3.normal = vec3(triangle.normal.x,triangle.normal.y,triangle.normal.z);
 
-    
+
 
     vector<Pixel> vertexPixels(3);
     vector<vec3> vertexReflections(3);
@@ -193,6 +193,12 @@ if(CHECKING_KEY_STATE){
     vertexReflections[1] = triangle.vertex2.illumination;
     vertexReflections[2] = triangle.vertex3.illumination;
 
+
+    printf("------- New Triangle -----------\n");
+    printf("Vertex 0 : %f, %f, %f\n",triangle.vertex1.pos.x, triangle.vertex1.pos.y, triangle.vertex1.pos.z );
+    printf("Vertex 1 : %f, %f, %f\n",triangle.vertex2.pos.x, triangle.vertex2.pos.y, triangle.vertex2.pos.z );
+    printf("Vertex 2 : %f, %f, %f\n",triangle.vertex3.pos.x, triangle.vertex3.pos.y, triangle.vertex3.pos.z );
+    printf("---------------------------------\n");
 
 
     int maxX = -numeric_limits<int>::max();
@@ -267,8 +273,7 @@ void getLightValue(Vertex& this_vertex){
     this_vertex.reflectance = reflectanceGlobal;
 
     this_vertex.illumination = this_vertex.reflectance * (dVal + indirectLightPowerPerArea);
-
-
+    printf("This vertex illumination : %f, %f, %f \n",this_vertex.illumination.x,this_vertex.illumination.y,this_vertex.illumination.z );
 
 }
 
