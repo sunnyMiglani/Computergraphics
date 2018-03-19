@@ -18,9 +18,10 @@ struct Pixel
 struct Vertex
 {
     Pixel pixelRep;
-    glm::vec2 reflectance;
+    glm::vec3 reflectance;
     glm::vec3 pos;
     glm::vec3 normal;
+    glm::vec3 illumination;
 };
 
 

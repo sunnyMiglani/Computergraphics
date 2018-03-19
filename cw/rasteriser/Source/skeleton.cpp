@@ -32,6 +32,7 @@ namespace std
 #define FULLSCREEN_MODE false
 #define CHECKING_KEY_STATE true
 #define FOCAL_LENGTH (SCREEN_HEIGHT*0.98)
+#define SHOW_LIGHT true
 
 struct Intersection
 {
@@ -55,7 +56,7 @@ void Interpolate( ivec2 a, ivec2 b, vector<ivec2>& result );
 void Interpolate_d(Pixel a, Pixel b, vector<Pixel>& result);
 void DrawPolygonEdges( const vector<vec4>& vertices , screen* screen);
 mat4 rotation(float yaw);
-void BarycentricCoordinates(vector<Pixel>& vertexPixels,vector<vec2>& vertexReflections, int y, int x, bool& pointInTriangle, Pixel& pixel);
+void BarycentricCoordinates(vector<Pixel>& vertexPixels,vector<vec3>& vertexReflections, int y, int x, bool& pointInTriangle, Pixel& pixel);
 float edgeFunction(ivec2& a, ivec2& b, ivec2& c);
 void Barycentric(Pixel a, Pixel b, Pixel c, ivec2 p, float &u, float &v, float &w);
 
@@ -65,6 +66,7 @@ void Barycentric(Pixel a, Pixel b, Pixel c, ivec2 p, float &u, float &v, float &
   VARIABLES
 */
 
+const float pi  = 3.141592653589793238463;
 vector<Triangle> triangles;
 vec4 cameraPos( 0, 0, -3.001,1);
 glm::mat4 R;
@@ -72,8 +74,10 @@ float yaw = 0; // Yaw angle controlling camera rotation around y-axis
 mat4 cameraDirection =  rotation(0);
 float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 vec3 lightPos(0,-0.5,-0.7);
-vec3 lightPower = 1.1f*vec3( 1, 1, 1 );
-vec3 indirectLightPowerPerArea = 0.5f*vec3( 1, 1, 1 );
+vec3 lightPower = 2.1f*vec3( 1, 1, 1 );
+vec3 indirectLightPowerPerArea = 0.7f*vec3( 1, 1, 1 );
+
+vec3 reflectanceGlobal = vec3(1.3,1.3,1.3);
 
 /*
  ----------------------------------------------------
@@ -178,14 +182,14 @@ if(CHECKING_KEY_STATE){
     triangle.vertex3.normal = vec3(triangle.normal.x,triangle.normal.y,triangle.normal.z);
 
     vector<Pixel> vertexPixels(3);
-    vector<vec2> vertexReflections(3);
+    vector<vec3> vertexReflections(3);
     VertexShader_d(triangle.v0, vertexPixels[0], triangle.vertex1);
     VertexShader_d(triangle.v1, vertexPixels[1], triangle.vertex2);
     VertexShader_d(triangle.v2, vertexPixels[2], triangle.vertex3);
 
-    vertexReflections[0] = triangle.vertex1.reflectance;
-    vertexReflections[1] = triangle.vertex2.reflectance;
-    vertexReflections[2] = triangle.vertex3.reflectance;
+    vertexReflections[0] = triangle.vertex1.illumination;
+    vertexReflections[1] = triangle.vertex2.illumination;
+    vertexReflections[2] = triangle.vertex3.illumination;
 
 
 
@@ -198,7 +202,7 @@ if(CHECKING_KEY_STATE){
     // Get the borders of the square for min_max values of the set of triangles.
     for(size_t i = 0; i < vertexPixels.size(); i++){
       maxX = max(maxX,vertexPixels[i].y);
-      minX = min(minX,vertexPixels[i].y); // TODO: WTF WHY???
+      minX = min(minX,vertexPixels[i].y);
       maxY = max(maxY,vertexPixels[i].x);
       minY = min(minY,vertexPixels[i].x);
 
@@ -216,7 +220,10 @@ if(CHECKING_KEY_STATE){
           if(pointInTriangle){
               if(tPixel.zinv > depthBuffer[row][col]){
                   depthBuffer[row][col] = tPixel.zinv;
-                  PutPixelSDL(screen, row, col, triangle.color);
+                  vec3 pixelColour =triangle.color;
+                  if(SHOW_LIGHT){pixelColour *=tPixel.illumination;}
+
+                  PutPixelSDL(screen, row, col, pixelColour);
                 }
             }
         }
@@ -249,13 +256,17 @@ void getLightValue(Vertex& this_vertex){
 
     float length_r = length(r_vec);
 
-    const float pi  = 3.141592653589793238463;
 
     float rNorm = dot(r_vec,normal);
     rNorm = max(rNorm , 0.0f);
 
+    // dVal is the Power of the _incoming_ light.
     vec3 dVal = (lightPower * rNorm) / ((float)( 4 * pi * length_r * length_r));
-    this_vertex.reflectance = vec2(dVal.x,dVal.y);
+    this_vertex.reflectance = reflectanceGlobal;
+
+    this_vertex.illumination = this_vertex.reflectance * (dVal + indirectLightPowerPerArea);
+
+
 
 }
 
@@ -331,7 +342,7 @@ float calculateDepth(float v0_d,float v1_d,float v2_d, float u, float v, float w
 }
 
 //https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/rasterization-stage
-void BarycentricCoordinates(vector<Pixel>& vertexPixels,vector<vec2>& vertexReflections,int y, int x, bool& pointInTriangle, Pixel& pixel){ // p is a pixel or point in triangle
+void BarycentricCoordinates(vector<Pixel>& vertexPixels,vector<vec3>& vertexReflections,int y, int x, bool& pointInTriangle, Pixel& pixel){ // p is a pixel or point in triangle
   float u;
   float v;
   float w;
@@ -346,9 +357,14 @@ void BarycentricCoordinates(vector<Pixel>& vertexPixels,vector<vec2>& vertexRefl
 
   pixel.x = x;
   pixel.y = y;
-
   Barycentric(v0, v1, v2, p, u, v, w);
+
+
   pixel.zinv = calculateDepth(v0.zinv, v1.zinv, v2.zinv, u,v,w);
+  pixel.illumination.x = calculateDepth(vertexReflections[0].x, vertexReflections[1].x, vertexReflections[2].x, u,v,w);
+  pixel.illumination.y = calculateDepth(vertexReflections[0].y, vertexReflections[1].y, vertexReflections[2].y, u,v,w);
+  pixel.illumination.z = calculateDepth(vertexReflections[0].z, vertexReflections[1].z, vertexReflections[2].z, u,v,w);
+
 
   // if point p is inside triangles defined by vertices v0, v1, v2
   if (u >= 0 && u <= 1 && v >= 0 && v <= 1 && w >= 0 && w <= 1) {
