@@ -40,12 +40,7 @@ struct Intersection
   int triangleIndex;
 };
 
-struct Pixel
-{
-  int x;
-  int y;
-  float zinv;
-};
+
 
 
 /* ----------------------------------------------------------------------------*/
@@ -54,7 +49,7 @@ struct Pixel
 void Update(vec4& cameraPos, mat4& cameraDirection);
 void Draw(screen* screen);
 void VertexShader( vec4 vertices, ivec2& projPos );
-void VertexShader_d(vec4& v, Pixel& p);
+void VertexShader_d(vec4& v, Pixel& p,Vertex& this_vert );
 void DrawLineSDL( SDL_Surface* surface, ivec2 a, ivec2 b, vec3 color );
 void Interpolate( ivec2 a, ivec2 b, vector<ivec2>& result );
 void Interpolate_d(Pixel a, Pixel b, vector<Pixel>& result);
@@ -76,7 +71,7 @@ glm::mat4 R;
 float yaw = 0; // Yaw angle controlling camera rotation around y-axis
 mat4 cameraDirection =  rotation(0);
 float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
-vec4 lightPos(0,-0.5,-0.7);
+vec3 lightPos(0,-0.5,-0.7);
 vec3 lightPower = 1.1f*vec3( 1, 1, 1 );
 vec3 indirectLightPowerPerArea = 0.5f*vec3( 1, 1, 1 );
 
@@ -122,10 +117,16 @@ void Draw(screen *screen)
   for(uint32_t i = 0; i < triangles.size(); i++){
     Triangle triangle = triangles[i];
     // Transform each vertex from 3D world position to 2D image position:
+
+
+    triangle.vertex1.normal = triangle.normal;
+    triangle.vertex2.normal = triangle.normal;
+    triangle.vertex3.normal = triangle.normal;
+
     vector<Pixel> vertexPixels(3);
-    VertexShader_d(triangle.v0, vertexPixels[0]);
-    VertexShader_d(triangle.v1, vertexPixels[1]);
-    VertexShader_d(triangle.v2, vertexPixels[2]);
+    VertexShader_d(triangle.v0, vertexPixels[0], triangle.vertex1);
+    VertexShader_d(triangle.v1, vertexPixels[1], triangle.vertex2);
+    VertexShader_d(triangle.v2, vertexPixels[2], triangle.vertex3);
 
 
     int maxX = -numeric_limits<int>::max();
@@ -232,12 +233,40 @@ void VertexShader(vec4 vertices, ivec2& projPos) {
   // std::cout << projPos << std::endl;
 }
 
-void VertexShader_d(vec4& vertices, Pixel& p){
+
+// Uses the formula
+/*
+    D = P max(r.n, 0) / 4 pi r^2
+    P is the power of the light source, r is a vector from the surface point to the light
+    source and n̂ is the normal of the surface
+
+*/
+
+float getLightValue(Vertex& this_vertex){
+    vec3 normal = this_vertex.normal;
+    vec3 pos = this_vertex.pos;
+    vec3 r_vec = vec3(lightPos - pos);
+
+    float length_r = length(r_vec);
+
+    const float pi  = 3.141592653589793238463;
+
+    float dVal = (lightPower * max(r_vec, 0.0f))/ ( 4 * pi * length_r * length_r);
+
+    return dVal;
+}
+
+
+
+
+void VertexShader_d(vec4& vertices, Pixel& p, Vertex& this_vert){
   vertices = vec4(cameraDirection*vec4(vertices - cameraPos));
   p.x = (FOCAL_LENGTH * (vertices.x)/(vertices.z)) + (SCREEN_WIDTH/2);
   p.y = (FOCAL_LENGTH * (vertices.y)/(vertices.z)) + (SCREEN_HEIGHT/2);
   p.zinv = 1.0f/vertices.z;
-}
+
+  this_vert.pixelRep = p;
+  getLightValue(this_vert);
 
 
 void Interpolate( ivec2 a, ivec2 b, vector<ivec2>& result )
