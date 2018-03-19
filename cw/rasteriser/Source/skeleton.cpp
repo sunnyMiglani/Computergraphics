@@ -55,7 +55,7 @@ void Interpolate( ivec2 a, ivec2 b, vector<ivec2>& result );
 void Interpolate_d(Pixel a, Pixel b, vector<Pixel>& result);
 void DrawPolygonEdges( const vector<vec4>& vertices , screen* screen);
 mat4 rotation(float yaw);
-void BarycentricCoordinates(vector<Pixel>& vertexPixels, int y, int x, bool& pointInTriangle, Pixel& pixel);
+void BarycentricCoordinates(vector<Pixel>& vertexPixels,vector<vec2>& vertexReflections, int y, int x, bool& pointInTriangle, Pixel& pixel);
 float edgeFunction(ivec2& a, ivec2& b, ivec2& c);
 void Barycentric(Pixel a, Pixel b, Pixel c, ivec2 p, float &u, float &v, float &w);
 
@@ -97,18 +97,72 @@ int main(int argc, char* argv[])
   KillSDL(screen);
   return 0;
 }
-
-void Draw(screen *screen)
+/*Place updates of parameters here*/
+void Update(vec4& cameraPos, mat4& cameraDirection)
 {
-  vector<ivec2> leftPixels(SCREEN_HEIGHT);
-  vector<ivec2> rightPixels(SCREEN_HEIGHT);
+static int t = SDL_GetTicks();
 
-  for(int y = 0; y < SCREEN_HEIGHT; y++){
-    for(int x = 0; x < SCREEN_WIDTH; x++){
-      depthBuffer[y][x] = -numeric_limits<int>::max();
+vec4 right(cameraDirection[0][0], cameraDirection[0][1], cameraDirection[0][2], 1);
+vec4 down(cameraDirection[1][0], cameraDirection[1][1], cameraDirection[1][2], 1);
+vec4 forward( cameraDirection[2][0], cameraDirection[2][1], cameraDirection[2][2], 1);
+
+/* Compute frame time */
+int t2 = SDL_GetTicks();
+float dt = float(t2-t);
+t = t2;
+/*Good idea to remove this*/
+std::cout << "Render time: " << dt << " ms." << std::endl;
+/* Update variables*/
+
+if(CHECKING_KEY_STATE){
+   const uint8_t* keystate = SDL_GetKeyboardState(0);
+
+   if(keystate == NULL){
+     printf("Keys are NULL \n");
+   }
+   else {
+//Move Camera
+     if(keystate[SDL_SCANCODE_UP]){
+       cameraPos += (forward * 0.05f);
+     }
+     if(keystate[SDL_SCANCODE_DOWN]){
+       cameraPos -= (forward * 0.05f);
+     }
+     if(keystate[SDL_SCANCODE_LEFT]){
+       yaw -= 0.04;
+       cameraDirection = rotation(yaw);
+     }
+     if(keystate[SDL_SCANCODE_RIGHT]){
+       yaw += 0.04;
+       cameraDirection = rotation(yaw);
+     }
+// //Move Light Source
+//       if(keystate[SDL_SCANCODE_W]){
+//         lightPositon += (forward*0.05f);
+//       }
+//       if(keystate[SDL_SCANCODE_S]){
+//         lightPositon -= (forward*0.05f);
+//       }
+//       if(keystate[SDL_SCANCODE_A]){
+//         lightPositon -= (right*0.05f);
+//       }
+//       if(keystate[SDL_SCANCODE_D]){
+//         lightPositon += (right*0.05f);
+//       }
+   }//end of large else
+ }
+}
+
+  void Draw(screen *screen)
+  {
+    vector<ivec2> leftPixels(SCREEN_HEIGHT);
+    vector<ivec2> rightPixels(SCREEN_HEIGHT);
+
+    for(int y = 0; y < SCREEN_HEIGHT; y++){
+      for(int x = 0; x < SCREEN_WIDTH; x++){
+        depthBuffer[y][x] = -numeric_limits<int>::max();
+      }
     }
-  }
-
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
 
@@ -119,14 +173,20 @@ void Draw(screen *screen)
     // Transform each vertex from 3D world position to 2D image position:
 
 
-    triangle.vertex1.normal = triangle.normal;
-    triangle.vertex2.normal = triangle.normal;
-    triangle.vertex3.normal = triangle.normal;
+    triangle.vertex1.normal = vec3(triangle.normal.x,triangle.normal.y,triangle.normal.z);
+    triangle.vertex2.normal = vec3(triangle.normal.x,triangle.normal.y,triangle.normal.z);
+    triangle.vertex3.normal = vec3(triangle.normal.x,triangle.normal.y,triangle.normal.z);
 
     vector<Pixel> vertexPixels(3);
+    vector<vec2> vertexReflections(3);
     VertexShader_d(triangle.v0, vertexPixels[0], triangle.vertex1);
     VertexShader_d(triangle.v1, vertexPixels[1], triangle.vertex2);
     VertexShader_d(triangle.v2, vertexPixels[2], triangle.vertex3);
+
+    vertexReflections[0] = triangle.vertex1.reflectance;
+    vertexReflections[1] = triangle.vertex2.reflectance;
+    vertexReflections[2] = triangle.vertex3.reflectance;
+
 
 
     int maxX = -numeric_limits<int>::max();
@@ -143,15 +203,11 @@ void Draw(screen *screen)
       minY = min(minY,vertexPixels[i].x);
 
     }
-    #pragma omp parallel for shared(depthBuffer)
+    // #pragma omp parallel for shared(depthBuffer)
     for(int row = minY; row < maxY; row++){ // looping through the square
       for(int col = minX; col < maxX; col++){
           Pixel tPixel;
-          // Get the barycentric coordinates for that pixel,
-          // Check to see if the pixel is in the triangle given.
-          // Find the depth of the pixel for depth buffers.
-          // Vertex pixels define which triangle for the barycentric coords.
-          BarycentricCoordinates(vertexPixels, row, col, pointInTriangle, tPixel);
+          BarycentricCoordinates(vertexPixels, vertexReflections,row, col, pointInTriangle, tPixel);
           if(row < 0 || row >= SCREEN_WIDTH || col < 0 || col >= SCREEN_HEIGHT){
               // printf("Skipped due to out of bounds! \n" );
               // stops segmentation faults
@@ -168,61 +224,6 @@ void Draw(screen *screen)
   }
 
 
-}
-/*Place updates of parameters here*/
-void Update(vec4& cameraPos, mat4& cameraDirection)
-{
-  static int t = SDL_GetTicks();
-
-  vec4 right(cameraDirection[0][0], cameraDirection[0][1], cameraDirection[0][2], 1);
-  vec4 down(cameraDirection[1][0], cameraDirection[1][1], cameraDirection[1][2], 1);
-  vec4 forward( cameraDirection[2][0], cameraDirection[2][1], cameraDirection[2][2], 1);
-
-  /* Compute frame time */
-  int t2 = SDL_GetTicks();
-  float dt = float(t2-t);
-  t = t2;
-  /*Good idea to remove this*/
-  std::cout << "Render time: " << dt << " ms." << std::endl;
-  /* Update variables*/
-
-  if(CHECKING_KEY_STATE){
-     const uint8_t* keystate = SDL_GetKeyboardState(0);
-
-     if(keystate == NULL){
-       printf("Keys are NULL \n");
-     }
-     else {
- //Move Camera
-       if(keystate[SDL_SCANCODE_UP]){
-         cameraPos += (forward * 0.05f);
-       }
-       if(keystate[SDL_SCANCODE_DOWN]){
-         cameraPos -= (forward * 0.05f);
-       }
-       if(keystate[SDL_SCANCODE_LEFT]){
-         yaw -= 0.04;
-         cameraDirection = rotation(yaw);
-       }
-       if(keystate[SDL_SCANCODE_RIGHT]){
-         yaw += 0.04;
-         cameraDirection = rotation(yaw);
-       }
- // //Move Light Source
- //       if(keystate[SDL_SCANCODE_W]){
- //         lightPositon += (forward*0.05f);
- //       }
- //       if(keystate[SDL_SCANCODE_S]){
- //         lightPositon -= (forward*0.05f);
- //       }
- //       if(keystate[SDL_SCANCODE_A]){
- //         lightPositon -= (right*0.05f);
- //       }
- //       if(keystate[SDL_SCANCODE_D]){
- //         lightPositon += (right*0.05f);
- //       }
-     }//end of large else
-   }
 }
 
 void VertexShader(vec4 vertices, ivec2& projPos) {
@@ -241,8 +242,7 @@ void VertexShader(vec4 vertices, ivec2& projPos) {
     source and n̂ is the normal of the surface
 
 */
-
-float getLightValue(Vertex& this_vertex){
+void getLightValue(Vertex& this_vertex){
     vec3 normal = this_vertex.normal;
     vec3 pos = this_vertex.pos;
     vec3 r_vec = vec3(lightPos - pos);
@@ -251,13 +251,13 @@ float getLightValue(Vertex& this_vertex){
 
     const float pi  = 3.141592653589793238463;
 
-    float dVal = (lightPower * max(r_vec, 0.0f))/ ( 4 * pi * length_r * length_r);
+    float rNorm = dot(r_vec,normal);
+    rNorm = max(rNorm , 0.0f);
 
-    return dVal;
+    vec3 dVal = (lightPower * rNorm) / ((float)( 4 * pi * length_r * length_r));
+    this_vertex.reflectance = vec2(dVal.x,dVal.y);
+
 }
-
-
-
 
 void VertexShader_d(vec4& vertices, Pixel& p, Vertex& this_vert){
   vertices = vec4(cameraDirection*vec4(vertices - cameraPos));
@@ -267,7 +267,7 @@ void VertexShader_d(vec4& vertices, Pixel& p, Vertex& this_vert){
 
   this_vert.pixelRep = p;
   getLightValue(this_vert);
-
+}
 
 void Interpolate( ivec2 a, ivec2 b, vector<ivec2>& result )
 {
@@ -331,7 +331,7 @@ float calculateDepth(float v0_d,float v1_d,float v2_d, float u, float v, float w
 }
 
 //https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/rasterization-stage
-void BarycentricCoordinates(vector<Pixel>& vertexPixels, int y, int x, bool& pointInTriangle, Pixel& pixel){ // p is a pixel or point in triangle
+void BarycentricCoordinates(vector<Pixel>& vertexPixels,vector<vec2>& vertexReflections,int y, int x, bool& pointInTriangle, Pixel& pixel){ // p is a pixel or point in triangle
   float u;
   float v;
   float w;
@@ -341,6 +341,7 @@ void BarycentricCoordinates(vector<Pixel>& vertexPixels, int y, int x, bool& poi
   Pixel v1 = vertexPixels[1];
   Pixel v2 = vertexPixels[2];
   pointInTriangle = false;
+
 
 
   pixel.x = x;
