@@ -142,16 +142,16 @@ if(CHECKING_KEY_STATE){
      }
 // //Move Light Source
 //       if(keystate[SDL_SCANCODE_W]){
-//         lightPositon += (forward*0.05f);
+//         lightPos += (forward*0.05f);
 //       }
 //       if(keystate[SDL_SCANCODE_S]){
-//         lightPositon -= (forward*0.05f);
+//         lightPos -= (forward*0.05f);
 //       }
 //       if(keystate[SDL_SCANCODE_A]){
-//         lightPositon -= (right*0.05f);
+//         lightPos -= (right*0.05f);
 //       }
 //       if(keystate[SDL_SCANCODE_D]){
-//         lightPositon += (right*0.05f);
+//         lightPos += (right*0.05f);
 //       }
    }//end of large else
  }
@@ -176,9 +176,10 @@ if(CHECKING_KEY_STATE){
     Triangle triangle = triangles[i];
     // Transform each vertex from 3D world position to 2D image position:
 
-    triangle.vertex1.normal = vec3(triangle.normal.x,triangle.normal.y,triangle.normal.z);
-    triangle.vertex2.normal = vec3(triangle.normal.x,triangle.normal.y,triangle.normal.z);
-    triangle.vertex3.normal = vec3(triangle.normal.x,triangle.normal.y,triangle.normal.z);
+    vec3 triangleNormal  = vec3(triangle.normal.x,triangle.normal.y,triangle.normal.z);
+    triangle.vertex1.normal = triangleNormal;
+    triangle.vertex2.normal = triangleNormal;
+    triangle.vertex3.normal = triangleNormal;
 
 
 
@@ -193,11 +194,11 @@ if(CHECKING_KEY_STATE){
     vertexReflections[2] = triangle.vertex3.illumination;
 
 
-    printf("------- New Triangle -----------\n");
-    printf("Vertex 0 : %f, %f, %f\n",triangle.vertex1.pos.x, triangle.vertex1.pos.y, triangle.vertex1.pos.z );
-    printf("Vertex 1 : %f, %f, %f\n",triangle.vertex2.pos.x, triangle.vertex2.pos.y, triangle.vertex2.pos.z );
-    printf("Vertex 2 : %f, %f, %f\n",triangle.vertex3.pos.x, triangle.vertex3.pos.y, triangle.vertex3.pos.z );
-    printf("---------------------------------\n");
+    // printf("------- New Triangle -----------\n");
+    // printf("Vertex 0 : %f, %f, %f\n",triangle.vertex1.pos.x, triangle.vertex1.pos.y, triangle.vertex1.pos.z );
+    // printf("Vertex 1 : %f, %f, %f\n",triangle.vertex2.pos.x, triangle.vertex2.pos.y, triangle.vertex2.pos.z );
+    // printf("Vertex 2 : %f, %f, %f\n",triangle.vertex3.pos.x, triangle.vertex3.pos.y, triangle.vertex3.pos.z );
+    // printf("---------------------------------\n");
 
 
     int maxX = -numeric_limits<int>::max();
@@ -272,7 +273,6 @@ void getLightValue(Vertex& this_vertex){
     this_vertex.reflectance = reflectanceGlobal;
 
     this_vertex.illumination = this_vertex.reflectance * (dVal + indirectLightPowerPerArea);
-    printf("This vertex illumination : %f, %f, %f \n",this_vertex.illumination.x,this_vertex.illumination.y,this_vertex.illumination.z );
 
 }
 
@@ -364,13 +364,21 @@ void BarycentricCoordinates(vector<Pixel>& vertexPixels,vector<vec3>& vertexRefl
 
   pixel.x = x;
   pixel.y = y;
-  Barycentric(v0, v1, v2, p, u, v, w);
+  Barycentric(v0, v1, v2, p, u, v, w); // u,v,w represent distance from pixel in barycentric
 
 
-  pixel.zinv = calculateDepth(v0.zinv, v1.zinv, v2.zinv, u,v,w);
-  pixel.illumination.x = calculateDepth(vertexReflections[0].x, vertexReflections[1].x, vertexReflections[2].x, u,v,w);
-  pixel.illumination.y = calculateDepth(vertexReflections[0].y, vertexReflections[1].y, vertexReflections[2].y, u,v,w);
-  pixel.illumination.z = calculateDepth(vertexReflections[0].z, vertexReflections[1].z, vertexReflections[2].z, u,v,w);
+  pixel.zinv = calculateDepth(v0.zinv, v1.zinv, v2.zinv, u,v,w); // calculates the depth via interpolation from u,v,w coordintes
+  // pixel.illumination.x = calculateDepth(vertexReflections[0].x, vertexReflections[1].x, vertexReflections[2].x, u,v,w);
+  // pixel.illumination.y = calculateDepth(vertexReflections[0].y, vertexReflections[1].y, vertexReflections[2].y, u,v,w);
+  // pixel.illumination.z = calculateDepth(vertexReflections[0].z, vertexReflections[1].z, vertexReflections[2].z, u,v,w);
+
+  pixel.illumination = vec3(u,v,w);
+
+
+  // https://classes.soe.ucsc.edu/cmps160/Fall10/resources/barycentricInterpolation.pdf
+  // could be useful for colouring
+  // How to calculate area of a triangle : https://math.stackexchange.com/questions/516219/finding-out-the-area-of-a-triangle-if-the-coordinates-of-the-three-vertices-are
+  
 
 
   // if point p is inside triangles defined by vertices v0, v1, v2
