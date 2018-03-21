@@ -348,6 +348,13 @@ float calculateDepth(float v0_d,float v1_d,float v2_d, float u, float v, float w
     return this_depth;
 }
 
+// https://math.stackexchange.com/questions/516219/finding-out-the-area-of-a-triangle-if-the-coordinates-of-the-three-vertices-are
+float calculateArea(Pixel& vertex1, Pixel& vertex2, Pixel& vertex3){
+    float area;
+    area = 0.5 * ( ((vertex2.x - vertex1.x)*(vertex2.y - vertex1.y)) - ((vertex3.x - vertex1.x) * (vertex2.y - vertex1.y)));
+    return abs(area);
+}
+
 //https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/rasterization-stage
 void BarycentricCoordinates(vector<Pixel>& vertexPixels,vector<vec3>& vertexReflections,int y, int x, bool& pointInTriangle, Pixel& pixel){ // p is a pixel or point in triangle
   float u;
@@ -368,17 +375,18 @@ void BarycentricCoordinates(vector<Pixel>& vertexPixels,vector<vec3>& vertexRefl
 
 
   pixel.zinv = calculateDepth(v0.zinv, v1.zinv, v2.zinv, u,v,w); // calculates the depth via interpolation from u,v,w coordintes
-  // pixel.illumination.x = calculateDepth(vertexReflections[0].x, vertexReflections[1].x, vertexReflections[2].x, u,v,w);
-  // pixel.illumination.y = calculateDepth(vertexReflections[0].y, vertexReflections[1].y, vertexReflections[2].y, u,v,w);
-  // pixel.illumination.z = calculateDepth(vertexReflections[0].z, vertexReflections[1].z, vertexReflections[2].z, u,v,w);
 
   pixel.illumination = vec3(u,v,w);
+
+
+
 
 
   // https://classes.soe.ucsc.edu/cmps160/Fall10/resources/barycentricInterpolation.pdf
   // could be useful for colouring
   // How to calculate area of a triangle : https://math.stackexchange.com/questions/516219/finding-out-the-area-of-a-triangle-if-the-coordinates-of-the-three-vertices-are
-  
+
+
 
 
   // if point p is inside triangles defined by vertices v0, v1, v2
