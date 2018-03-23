@@ -77,7 +77,7 @@ vec3 lightPos(0,-0.5,-0.7);
 vec3 lightPower = 1.1f*vec3( 1, 1, 1 );
 vec3 indirectLightPowerPerArea = 0.7f*vec3( 1, 1, 1 );
 
-vec3 reflectanceGlobal = vec3(0.5,0.5,0.5);
+vec3 reflectanceGlobal = vec3(0.9,0.9,0.9);
 
 /*
  ----------------------------------------------------
@@ -277,6 +277,7 @@ void getLightValue(Vertex& this_vertex){
 }
 
 void VertexShader_d(vec4& vertices, Pixel& p, Vertex& this_vert){
+
   vertices = vec4(cameraDirection*vec4(vertices - cameraPos));
   p.x = (FOCAL_LENGTH * (vertices.x)/(vertices.z)) + (SCREEN_WIDTH/2);
   p.y = (FOCAL_LENGTH * (vertices.y)/(vertices.z)) + (SCREEN_HEIGHT/2);
@@ -375,9 +376,12 @@ void BarycentricCoordinates(vector<Pixel>& vertexPixels,vector<vec3>& vertexRefl
 
 
   pixel.zinv = calculateDepth(v0.zinv, v1.zinv, v2.zinv, u,v,w); // calculates the depth via interpolation from u,v,w coordintes
+  //
+  // pixel.illumination = vec3(u,v,w);
 
-  pixel.illumination = vec3(u,v,w);
-
+  pixel.illumination.x = calculateDepth(vertexReflections[0].x, vertexReflections[1].x, vertexReflections[2].x, u,v,w);
+  pixel.illumination.y = calculateDepth(vertexReflections[0].y, vertexReflections[1].y, vertexReflections[2].y, u,v,w);
+  pixel.illumination.z = calculateDepth(vertexReflections[0].z, vertexReflections[1].z, vertexReflections[2].z, u,v,w);
 
 
 
