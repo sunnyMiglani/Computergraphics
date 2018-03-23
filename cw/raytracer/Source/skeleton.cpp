@@ -5,6 +5,7 @@
 #include "TestModelH.h"
 #include <stdint.h>
 #include "limits"
+#include <omp.h>
 
 
 using namespace std;
@@ -54,6 +55,8 @@ mat4 cameraDirection =  rotation(0);
 vec4 cameraPos(0, 0, -3, 1); // TODO: Make structure for camera and all these things to it
 vec3 indirectLight = 0.5f * vec3(1, 1, 1);
 float focalLength = SCREEN_WIDTH;
+float offset = 0.5-(1/(sqrt(NUM_RAYS)*2));
+float interval = 1/(sqrt(NUM_RAYS)); // TODO use define
 
 
 
@@ -82,8 +85,7 @@ vec3 getAntiAliasingAvg(int x, int y, vector<Triangle>& triangles, vec4& cameraP
                         mat4& cameraDirection, vector<Intersection>& intersectionArray, bool &check_intersection){
 
   check_intersection = true;
-  float offset = 0.5-1/(sqrt(NUM_RAYS)*2);
-  float interval = 1/sqrt(NUM_RAYS);
+
   vec3 totalColor = vec3(0.0,0.0,0.0);
   vec3 avgColor;
   int index = 0;
@@ -128,6 +130,7 @@ void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos, mat4& ca
   vector<Intersection> intersectionArray(NUM_RAYS);
   bool all_intersections;
 
+  #pragma omp parallel for
   for(int y = 0; y < screen->height; y++){ //int because size_t>0
     for(int x = 0; x < screen->width; x++){
 
@@ -213,7 +216,8 @@ bool ClosestIntersection(vec4 start,vec4 dir,const vector<Triangle>& triangles,I
     vec3 b = vec3(start.x-v0.x, start.y-v0.y, start.z-v0.z);//start - v0;
 
     mat3 A(-vec3(dir), e1, e2);
-    vec3 x = glm::inverse(A)*b;
+    vec3 x = glm::inverse(A)*b; // TODO Cramers rule for inverse
+    // TODO Make mat3 and vec3 use the background arrays instead. Saves time on access length
 
     float t = x.x;
     float u = x.y;
