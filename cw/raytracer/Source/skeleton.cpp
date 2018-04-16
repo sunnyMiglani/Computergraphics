@@ -20,7 +20,9 @@ using glm::mat4;
 #define FULLSCREEN_MODE false
 #define CHECKING_KEY_STATE true
 #define SHADOW_RENDER false
-#define NUM_RAYS 10
+#define NUM_RAYS 1
+#define NUM_LIGHT_RAYS 64
+
 
 
 struct Intersection
@@ -39,16 +41,19 @@ void Update(vec4& cameraPos,mat4& cameraDirection);
 mat4 rotation(float yaw);
 void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos, mat4& cameraDirection);
 bool ClosestIntersection(vec4 start,vec4 dir,const vector<Triangle>& triangles,Intersection& closestIntersection );
-vec3 DirectLight(const Intersection& i,vector<Triangle>& triangles,bool& shadowPixel );
+vec3 DirectLight(const Intersection& i,vector<Triangle>& triangles,bool& shadowPixel, const vec4& lightPos);
 vec3 Dot_Prod_v3(vec3& a, vec3& b);
 vec4 Dot_Prod_v4(vec4& a, vec4& b);
 vec3 getAntiAliasingAvg(int x, int y, vector<Triangle>& triangles, vec4& cameraPos,
                         mat4& cameraDirection, vector<Intersection>& intersectionArray, bool& check_intersection);
+vec3 AreaLight(const Intersection& i, vector<Triangle>& triangles, bool& shadowPixel);
+void GenAreaLight(vector<vec4>& lightPositionArr, const vec4& lightPosition);
 
 /* ----------------------------------------------------------------------------*/
 /* GLOBAL VARIABLES                                                            */
 float yaw = 0;
-vec4 lightPositon(0, -0.5, -0.7, 1);
+vec4 lightPosition(0, -0.5, -0.7, 1);
+vector<vec4> lightPositionArr(NUM_LIGHT_RAYS);
 vec4 lightColor = 14.f * vec4(1, 1, 1,1);
 const float pi  = 3.141592653589793238463;
 mat4 cameraDirection =  rotation(0);
@@ -57,7 +62,9 @@ vec3 indirectLight = 0.5f * vec3(1, 1, 1);
 float focalLength = SCREEN_WIDTH;
 float offset = 0.5-1/(sqrt(NUM_RAYS)*2);
 float interval = 1/sqrt(NUM_RAYS);
-
+float offset_l = 0.5-1/(sqrt(NUM_LIGHT_RAYS)*2);
+float interval_l = 1/sqrt(NUM_LIGHT_RAYS);
+vector<vec3> shadedPixelArr(NUM_LIGHT_RAYS);
 
 
 int main( int argc, char* argv[] )
@@ -66,6 +73,12 @@ int main( int argc, char* argv[] )
 
   vector<Triangle> triangles;
   LoadTestModel(triangles);
+
+  GenAreaLight(lightPositionArr, lightPosition);
+  cout << lightPositionArr.size() << endl;
+  for(int i = 0; i < NUM_LIGHT_RAYS; i++){
+    std::cout << "(" << lightPositionArr[i].x << ", " << lightPositionArr[i].y << ", " << lightPositionArr[i].z << ", " << lightPositionArr[i].w << ")" << std::endl;
+  }
 
   while( NoQuitMessageSDL() )
     {
@@ -93,6 +106,7 @@ vec3 getAntiAliasingAvg(int x, int y, vector<Triangle>& triangles, vec4& cameraP
   bool intersection;
   Intersection triangleIntersection;
   int numForAvg = 0;
+  vec3 shadedPixelTotal;
 
   for(float j = -offset; j <= offset; j += interval) {
     for(float i = -offset; i <= offset; i += interval) {
@@ -103,11 +117,19 @@ vec3 getAntiAliasingAvg(int x, int y, vector<Triangle>& triangles, vec4& cameraP
       // if(!check_intersection){
       //   std::cout << "Found a non intersection!" << '\n';
       // }
-      intersectionArray[index] = triangleIntersection;
+      intersectionArray[index] = triangleIntersection; // Do we do anything with intersectionArray?
       index += 1;
 
-      vec3 shadedPixel = DirectLight(triangleIntersection,triangles,shadowPixel);
-      if(shadowPixel){ shadedPixel = vec3(0,0,0); }
+      shadedPixelTotal = vec3(0,0,0);
+      for(int idx = 0; idx < NUM_LIGHT_RAYS; idx++){
+        vec4 lightPos = lightPositionArr[idx];
+        vec3 tmpShadedPixel = DirectLight(triangleIntersection,triangles,shadowPixel,lightPos);
+        shadedPixelTotal.x += tmpShadedPixel.x;
+        shadedPixelTotal.y += tmpShadedPixel.y;
+        shadedPixelTotal.z += tmpShadedPixel.z;
+      }
+      vec3 shadedPixel = vec3(shadedPixelTotal.x / (NUM_LIGHT_RAYS), shadedPixelTotal.y / (NUM_LIGHT_RAYS), shadedPixelTotal.z / (NUM_LIGHT_RAYS));
+      //vec3 shadedPixel = AreaLight(triangleIntersection,triangles,shadowPixel);
       numForAvg+=1;
       totalColor += triangles[triangleIntersection.triangleIndex].color*(shadedPixel+indirectLight);
     }
@@ -116,9 +138,6 @@ vec3 getAntiAliasingAvg(int x, int y, vector<Triangle>& triangles, vec4& cameraP
   return avgColor;
 
 }
-
-
-
 
 
 /*Place your drawing here*/
@@ -130,13 +149,13 @@ void Draw(screen* screen, vector<Triangle>& triangles, vec4& cameraPos, mat4& ca
   vector<Intersection> intersectionArray(NUM_RAYS);
   bool all_intersections;
 
-  #pragma omp parallel for
+  #pragma omp parallel for collapse(2)
   for(int y = 0; y < screen->height; y++){ //int because size_t>0
     for(int x = 0; x < screen->width; x++){
 
       vec3 avgColour = getAntiAliasingAvg(x, y, triangles, cameraPos, cameraDirection, intersectionArray, all_intersections);
       // if(all_intersections){
-        PutPixelSDL(screen, x, y, avgColour);
+      PutPixelSDL(screen, x, y, avgColour);
       // }
     }
   }
@@ -183,16 +202,16 @@ void Update(vec4& cameraPos, mat4& cameraDirection)
       }
 //Move Light Source
       if(keystate[SDL_SCANCODE_W]){
-        lightPositon += (forward*0.05f);
+        lightPosition += (forward*0.05f);
       }
       if(keystate[SDL_SCANCODE_S]){
-        lightPositon -= (forward*0.05f);
+        lightPosition -= (forward*0.05f);
       }
       if(keystate[SDL_SCANCODE_A]){
-        lightPositon -= (right*0.05f);
+        lightPosition -= (right*0.05f);
       }
       if(keystate[SDL_SCANCODE_D]){
-        lightPositon += (right*0.05f);
+        lightPosition += (right*0.05f);
       }
     }//end of large else
   }
@@ -247,15 +266,18 @@ vec4 Dot_Prod_v4(vec4& a, vec4& b){
   return vec4(a.x *b.x, a.y*b.y, a.z*b.z, a.w * b.w);
 }
 
-vec3 DirectLight(const Intersection& i, vector<Triangle>& triangles, bool& shadowPixel){
+vec3 DirectLight(const Intersection& i, vector<Triangle>& triangles, bool& shadowPixel, const vec4& lightPos){
   vec4 position = i.position;
   int triangleIndex = i.triangleIndex;
 
-  vec4 r = normalize(lightPositon - position); // r -> Direction to light.
-  float length_r = glm::length(lightPositon - position);
+  vec4 r = normalize(lightPos - position); // r -> Direction to light.
+  float length_r = glm::length(lightPos - position);
 
   vec4 normal = triangles[triangleIndex].normal;
   float rNorm = dot(r,normal);
+  rNorm = max(rNorm,0.f);
+
+  vec4 D(0,0,0,0);
 
   bool intersection;
   Intersection thisIntersection;
@@ -264,14 +286,87 @@ vec3 DirectLight(const Intersection& i, vector<Triangle>& triangles, bool& shado
     float distToClosestIntesect = thisIntersection.distance;
     if(length_r >= distToClosestIntesect){
       shadowPixel = true;
+      D = vec4(0,0,0,0);
     }
-    else shadowPixel = false;
-  } else shadowPixel = false;
-
-
-  rNorm = max(rNorm,0.f);
-  vec4 D = (lightColor*rNorm)/(float)(4*pi*length_r*length_r);
+    else {
+      shadowPixel = false;
+      D = (lightColor*rNorm)/(float)(4*pi*length_r*length_r);
+    }
+  } else {
+    shadowPixel = false;
+    D = (lightColor*rNorm)/(float)(4*pi*length_r*length_r);
+  }
+  // vec4 D = (lightColor*rNorm)/(float)(4*pi*length_r*length_r);
 
   // printf("D: (%f),(%f),(%f) \n",D.x,D.y,D.z);
   return vec3(D.x,D.y,D.z);
+}
+
+vec3 AreaLight(const Intersection& i, vector<Triangle>& triangles, bool& shadowPixel){
+  vec4 position = i.position;
+  int triangleIndex = i.triangleIndex;
+  vector<vec4> DArr(NUM_LIGHT_RAYS);
+  vec3 totalPixelIntensity = vec3(0, 0, 0);
+
+  for(int i = 0; i < NUM_LIGHT_RAYS; i++){
+    vec4 lightPos = lightPositionArr[i];
+    //std::cout << "(" << lightPos.x << ", " << lightPos.y << ", " << lightPos.z << ", " << lightPos.w << ")" << std::endl;
+
+    vec4 r = normalize(lightPos - position); // r -> Direction to light.
+    float length_r = glm::length(lightPos - position);
+
+    vec4 normal = triangles[triangleIndex].normal;
+    float rNorm = dot(r,normal);
+    rNorm = max(rNorm,0.f);
+
+    vec4 D = vec4(0,0,0,0);
+
+    bool intersection;
+    Intersection thisIntersection;
+    intersection = ClosestIntersection(position+0.001f*r, r, triangles, thisIntersection);
+    if(intersection){
+      float distToClosestIntesect = thisIntersection.distance;
+      if(length_r >= distToClosestIntesect){
+        shadowPixel = true;
+        D = vec4(0,0,0,0);
+        DArr[i] = D;
+      } else {
+        shadowPixel = false;
+        D = (lightColor*rNorm)/(float)(4*pi*length_r*length_r);
+        DArr[i] = D;
+      }
+    } else {
+      shadowPixel = false;
+      D = (lightColor*rNorm)/(float)(4*pi*length_r*length_r);
+      DArr[i] = D;
+    }
+
+    //return vec3(D.x,D.y,D.z);
+  }
+  for(int idx = 0; idx < NUM_LIGHT_RAYS; idx++){
+    totalPixelIntensity.x += DArr[idx].x;
+    totalPixelIntensity.y += DArr[idx].y;
+    totalPixelIntensity.z += DArr[idx].z;
+  }
+  vec3 avgPixelIntensity = vec3(totalPixelIntensity.x / (NUM_LIGHT_RAYS), totalPixelIntensity.y / (NUM_LIGHT_RAYS),
+                       totalPixelIntensity.z / (NUM_LIGHT_RAYS));
+
+  return avgPixelIntensity;
+}
+
+void GenAreaLight(vector<vec4>& lightPositionArr, const vec4& lightPosition){
+  vec4 tmpLightPosition;
+  int index = 0;
+  cout << offset_l << endl;
+  for(float j = -offset_l; j <= offset_l; j += interval_l) {
+    for(float i = -offset_l; i <= offset_l; i += interval_l) {
+      tmpLightPosition.x = lightPosition.x + j;
+      tmpLightPosition.y = lightPosition.y;
+      tmpLightPosition.z = lightPosition.z + i;
+      tmpLightPosition.w = lightPosition.w;
+      lightPositionArr[index] = tmpLightPosition;
+      index += 1;
+    }
+  }
+  //std::cout << "(" << lightPositionArr[idx].x << ", " << lightPositionArr[idx].y << ", " << lightPositionArr[idx].z << ", " << lightPositionArr[idx].w << ")" << std::endl;
 }
