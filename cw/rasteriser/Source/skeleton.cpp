@@ -56,7 +56,7 @@ void Interpolate( ivec2 a, ivec2 b, vector<ivec2>& result );
 void Interpolate_d(Pixel a, Pixel b, vector<Pixel>& result);
 void DrawPolygonEdges( const vector<vec4>& vertices , screen* screen);
 mat4 rotation(float yaw);
-void BarycentricCoordinates(vector<Pixel>& vertexPixels,vector<vec3>& vertexReflections, int y, int x, bool& pointInTriangle, Pixel& pixel);
+void BarycentricCoordinates(vector<Pixel>& vertexPixels, int y, int x, bool& pointInTriangle, Pixel& pixel);
 float edgeFunction(ivec2& a, ivec2& b, ivec2& c);
 void Barycentric(Pixel a, Pixel b, Pixel c, ivec2 p, float &u, float &v, float &w);
 
@@ -73,11 +73,11 @@ glm::mat4 R;
 float yaw = 0; // Yaw angle controlling camera rotation around y-axis
 mat4 cameraDirection =  rotation(0);
 float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
-vec3 lightPos(0,-0.5,-0.7);
+vec3 lightPos(0,-0.5,-0.3);
 vec3 lightPower = 14.0f*vec3( 1, 1, 1 );
-vec3 indirectLightPowerPerArea = 0.7f*vec3( 1, 1, 1 );
+vec3 indirectLightPowerPerArea = 0.f*vec3( 1, 1, 1 );
 
-vec3 reflectanceGlobal = vec3(0.9,0.9,0.9);
+vec3 reflectanceGlobal = vec3(1,1,1);
 
 /*
  ----------------------------------------------------
@@ -115,7 +115,7 @@ int t2 = SDL_GetTicks();
 float dt = float(t2-t);
 t = t2;
 /*Good idea to remove this*/
-std::cout << "Render time: " << dt << " ms." << std::endl;
+// std::cout << "Render time: " << dt << " ms." << std::endl;
 /* Update variables*/
 
 if(CHECKING_KEY_STATE){
@@ -140,23 +140,26 @@ if(CHECKING_KEY_STATE){
        yaw += 0.04;
        cameraDirection = rotation(yaw);
      }
-// //Move Light Source
-//       if(keystate[SDL_SCANCODE_W]){
-//         lightPos += (forward*0.05f);
-//       }
-//       if(keystate[SDL_SCANCODE_S]){
-//         lightPos -= (forward*0.05f);
-//       }
-//       if(keystate[SDL_SCANCODE_A]){
-//         lightPos -= (right*0.05f);
-//       }
-//       if(keystate[SDL_SCANCODE_D]){
-//         lightPos += (right*0.05f);
-//       }
-   }//end of large else
- }
+     //Move Light Source
+    if(keystate[SDL_SCANCODE_W]){
+        std::cout << "Pos : " << lightPos.x <<" "<< lightPos.y <<" "<< lightPos.z << '\n';
+         lightPos += vec3(forward*0.05f);
+       }
+       if(keystate[SDL_SCANCODE_S]){
+         lightPos -= vec3(forward*0.05f);
+         std::cout << "Pos : " << lightPos.x <<" "<< lightPos.y <<" "<< lightPos.z << '\n';
+       }
+       if(keystate[SDL_SCANCODE_A]){
+         lightPos -= vec3(right*0.05f);
+         std::cout << "Pos : " << lightPos.x <<" "<< lightPos.y <<" "<< lightPos.z << '\n';
+       }
+       if(keystate[SDL_SCANCODE_D]){
+         lightPos += vec3(right*0.05f);
+         std::cout << "Pos : " << lightPos.x <<" "<< lightPos.y <<" "<< lightPos.z << '\n';
+       }
+   }
 }
-
+}
   void Draw(screen *screen)
   {
     vector<ivec2> leftPixels(SCREEN_HEIGHT);
@@ -183,16 +186,13 @@ if(CHECKING_KEY_STATE){
     triangle.vertex3.normal = triangleNormal;
 
 
-
     vector<Pixel> vertexPixels(3);
-    vector<vec3> vertexReflections(3);
+
+    // Here the vertexShader will populate the vertexPixels[] values.
     VertexShader_d(triangle.v0, vertexPixels[0], triangle.vertex1);
     VertexShader_d(triangle.v1, vertexPixels[1], triangle.vertex2);
     VertexShader_d(triangle.v2, vertexPixels[2], triangle.vertex3);
 
-    vertexReflections[0] = triangle.vertex1.illumination;
-    vertexReflections[1] = triangle.vertex2.illumination;
-    vertexReflections[2] = triangle.vertex3.illumination;
 
 
     // printf("------- New Triangle -----------\n");
@@ -219,18 +219,19 @@ if(CHECKING_KEY_STATE){
     for(int row = minY; row < maxY; row++){ // looping through the square
       for(int col = minX; col < maxX; col++){
           Pixel tPixel;
-          BarycentricCoordinates(vertexPixels, vertexReflections,row, col, pointInTriangle, tPixel);
+          BarycentricCoordinates(vertexPixels,row, col, pointInTriangle, tPixel);
           if(row < 0 || row >= SCREEN_WIDTH || col < 0 || col >= SCREEN_HEIGHT){
               // printf("Skipped due to out of bounds! \n" );
-              // stops segmentation faults
               continue;
             }
           if(pointInTriangle){
               if(tPixel.zinv > depthBuffer[row][col]){
                   depthBuffer[row][col] = tPixel.zinv;
                   // printf("Pixel illumination : %f %f %f\n",tPixel.illumination.x ,tPixel.illumination.y ,tPixel.illumination.z  );
-                  vec3 pixelColour =triangle.color;
-                  if(SHOW_LIGHT){pixelColour *=tPixel.illumination;}
+                  vec3 pixelColour = triangle.color;
+                  if(SHOW_LIGHT){
+                      pixelColour *= tPixel.illumination;
+                  }
                   PutPixelSDL(screen, row, col, pixelColour);
                 }
             }
@@ -248,26 +249,6 @@ void VertexShader(vec4 vertices, ivec2& projPos) {
   projPos.y = (FOCAL_LENGTH * (vertices.y)/(vertices.z)) + (SCREEN_HEIGHT/2);
   // std::cout << projPos << std::endl;
 }
-
-
-// void getLightValuePixel(Pixel& this_pixel){
-//     vec3 normal = this_pixel.normal;
-//     vec3 pos = this_pixel.pos;
-//     vec3 r_vec = normalize(lightPos - pos);
-//
-//     float length_r = length(r_vec);
-//
-//
-//     float rNorm = dot(r_vec,normal);
-//     rNorm = max(rNorm , 0.0f);
-//
-//     // dVal is the Power of the _incoming_ light.
-//     vec3 dVal = (lightPower * rNorm) / ((float)( 4 * pi * length_r * length_r));
-//     this_pixel.reflectance = reflectanceGlobal;
-//
-//     this_pixel.illumination = this_pixel.reflectance * (dVal + indirectLightPowerPerArea);
-//
-// }
 
 // Uses the formula
 /*
@@ -295,16 +276,38 @@ void getLightValue(Vertex& this_vertex){
 
 }
 
+void getLightValuePixel(Pixel& this_pixel){
+    vec3 normal = this_pixel.normal;
+    vec3 pos = this_pixel.pos;
+    vec3 r_vec = (lightPos - pos);
+
+    float length_r = glm::length(r_vec);
+
+
+    float rNorm = glm::dot(glm::normalize(r_vec),normal);
+
+    rNorm = max(rNorm , -rNorm);
+    // rNorm /=3.0f;
+    // dVal is the Power of the _incoming_ light.
+    vec3 dVal = (lightPower * rNorm) / ((float)( 4.0f * pi * length_r * length_r));
+    this_pixel.reflectance = reflectanceGlobal;
+
+    this_pixel.illumination = this_pixel.reflectance * (dVal + indirectLightPowerPerArea);
+
+}
+
+
 void VertexShader_d(vec4& vertices, Pixel& p, Vertex& this_vert){
 
   vertices = vec4(cameraDirection*vec4(vertices - cameraPos));
   p.x = (FOCAL_LENGTH * (vertices.x)/(vertices.z)) + (SCREEN_WIDTH/2);
   p.y = (FOCAL_LENGTH * (vertices.y)/(vertices.z)) + (SCREEN_HEIGHT/2);
   p.zinv = 1.0f/vertices.z;
+  p.normal = this_vert.normal;
 
   this_vert.pos = vec3(vertices.x,vertices.y,vertices.z);
   this_vert.pixelRep = p;
-  getLightValue(this_vert);
+  // getLightValue(this_vert);
 }
 
 void Interpolate( ivec2 a, ivec2 b, vector<ivec2>& result )
@@ -366,6 +369,22 @@ float calculateDepth(float v0_d,float v1_d,float v2_d, float u, float v, float w
 
     float this_depth = (v0_d * u +  v1_d * v + v2_d * w);
     return this_depth;
+
+}
+
+
+vec3 calculatePixelPos_Tilted(Pixel v0, Pixel v1, Pixel v2, float u, float v, float w){
+
+    vec3 this_pos = (v0.pos * u +  v1.pos * v + v2.pos * w);
+    return this_pos;
+
+}
+
+vec3 calculatePixelPos(Pixel v0, Pixel v1, Pixel v2, float u, float v, float w, float zinvVal){
+
+    vec3 this_pos = ((v0.pos * v0.zinv) * u +  (v1.pos * v0.zinv) * v + (v2.pos * v0.zinv) * w);
+    this_pos /= zinvVal;
+    return this_pos;
 }
 
 // https://math.stackexchange.com/questions/516219/finding-out-the-area-of-a-triangle-if-the-coordinates-of-the-three-vertices-are
@@ -376,7 +395,7 @@ float calculateArea(Pixel& vertex1, Pixel& vertex2, Pixel& vertex3){
 }
 
 //https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/rasterization-stage
-void BarycentricCoordinates(vector<Pixel>& vertexPixels,vector<vec3>& vertexReflections,int y, int x, bool& pointInTriangle, Pixel& pixel){ // p is a pixel or point in triangle
+void BarycentricCoordinates(vector<Pixel>& vertexPixels,int y, int x, bool& pointInTriangle, Pixel& pixel){ // p is a pixel or point in triangle
   float u;
   float v;
   float w;
@@ -393,21 +412,11 @@ void BarycentricCoordinates(vector<Pixel>& vertexPixels,vector<vec3>& vertexRefl
   pixel.y = y;
   Barycentric(v0, v1, v2, p, u, v, w); // u,v,w represent distance from pixel in barycentric
 
-
   pixel.zinv = calculateDepth(v0.zinv, v1.zinv, v2.zinv, u,v,w); // calculates the depth via interpolation from u,v,w coordintes
-  //
-  // pixel.illumination = vec3(u,v,w);
 
-  pixel.illumination.x = calculateDepth(vertexReflections[0].x, vertexReflections[1].x, vertexReflections[2].x, u,v,w);
-  pixel.illumination.y = calculateDepth(vertexReflections[0].y, vertexReflections[1].y, vertexReflections[2].y, u,v,w);
-  pixel.illumination.z = calculateDepth(vertexReflections[0].z, vertexReflections[1].z, vertexReflections[2].z, u,v,w);
-
-
-
-
-  // https://classes.soe.ucsc.edu/cmps160/Fall10/resources/barycentricInterpolation.pdf
-  // could be useful for colouring
-  // How to calculate area of a triangle : https://math.stackexchange.com/questions/516219/finding-out-the-area-of-a-triangle-if-the-coordinates-of-the-three-vertices-are
+  pixel.normal = v0.normal;
+  pixel.pos = calculatePixelPos_Tilted(v0,v1,v2,u,v,w);
+  getLightValuePixel(pixel);
 
 
 

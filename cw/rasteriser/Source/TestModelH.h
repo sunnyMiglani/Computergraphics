@@ -13,6 +13,8 @@ struct Pixel
   float zinv;
   glm::vec3 illumination;
   glm::vec3 normal;
+  glm::vec3 reflectance;
+  glm::vec3 pos;
 
 };
 
