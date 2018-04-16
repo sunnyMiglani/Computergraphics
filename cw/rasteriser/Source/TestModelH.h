@@ -12,6 +12,7 @@ struct Pixel
   int y;
   float zinv;
   glm::vec3 illumination;
+  glm::vec3 normal;
 
 };
 

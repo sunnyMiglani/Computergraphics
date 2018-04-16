@@ -74,7 +74,7 @@ float yaw = 0; // Yaw angle controlling camera rotation around y-axis
 mat4 cameraDirection =  rotation(0);
 float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 vec3 lightPos(0,-0.5,-0.7);
-vec3 lightPower = 1.1f*vec3( 1, 1, 1 );
+vec3 lightPower = 14.0f*vec3( 1, 1, 1 );
 vec3 indirectLightPowerPerArea = 0.7f*vec3( 1, 1, 1 );
 
 vec3 reflectanceGlobal = vec3(0.9,0.9,0.9);
@@ -162,7 +162,7 @@ if(CHECKING_KEY_STATE){
     vector<ivec2> leftPixels(SCREEN_HEIGHT);
     vector<ivec2> rightPixels(SCREEN_HEIGHT);
 
-    for(int y = 0; y < SCREEN_HEIGHT; y++){
+    for(int y = 0; y < SCREEN_HEIGHT; y++){ // Set the depth buffer to max values
       for(int x = 0; x < SCREEN_WIDTH; x++){
         depthBuffer[y][x] = -numeric_limits<int>::max();
       }
@@ -173,6 +173,7 @@ if(CHECKING_KEY_STATE){
   bool pointInTriangle;
 
   for(uint32_t i = 0; i < triangles.size(); i++){
+
     Triangle triangle = triangles[i];
     // Transform each vertex from 3D world position to 2D image position:
 
@@ -215,7 +216,6 @@ if(CHECKING_KEY_STATE){
       minY = min(minY,vertexPixels[i].x);
 
     }
-    // #pragma omp parallel for shared(depthBuffer)
     for(int row = minY; row < maxY; row++){ // looping through the square
       for(int col = minX; col < maxX; col++){
           Pixel tPixel;
@@ -249,6 +249,25 @@ void VertexShader(vec4 vertices, ivec2& projPos) {
   // std::cout << projPos << std::endl;
 }
 
+
+// void getLightValuePixel(Pixel& this_pixel){
+//     vec3 normal = this_pixel.normal;
+//     vec3 pos = this_pixel.pos;
+//     vec3 r_vec = normalize(lightPos - pos);
+//
+//     float length_r = length(r_vec);
+//
+//
+//     float rNorm = dot(r_vec,normal);
+//     rNorm = max(rNorm , 0.0f);
+//
+//     // dVal is the Power of the _incoming_ light.
+//     vec3 dVal = (lightPower * rNorm) / ((float)( 4 * pi * length_r * length_r));
+//     this_pixel.reflectance = reflectanceGlobal;
+//
+//     this_pixel.illumination = this_pixel.reflectance * (dVal + indirectLightPowerPerArea);
+//
+// }
 
 // Uses the formula
 /*
