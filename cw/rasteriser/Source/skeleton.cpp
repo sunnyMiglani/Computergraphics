@@ -265,7 +265,7 @@ void Draw(screen *screen)
 
 */
 
-void VertexShader(vec4& vertex, Pixel& p){
+void VertexShader(const vec4& vertex, Pixel& p){
 
   vec4 point = cameraDirection*vec4(vertex - cameraPos);
   p.x = (int) (FOCAL_LENGTH * point.x/point.z) + (SCREEN_WIDTH/2);
