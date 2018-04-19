@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include "limits"
 #include <omp.h>
-#include <glm/gtx/rotate_vector.hpp>
+//#include <glm/gtx/rotate_vector.hpp>
 #include <glm/ext.hpp>
 
 
@@ -23,7 +23,7 @@ using glm::mat4;
 #define CHECKING_KEY_STATE true
 #define SHADOW_RENDER false
 #define NUM_RAYS 1
-#define NUM_LIGHT_RAYS 64
+#define NUM_LIGHT_RAYS 1
 #define NUM_PHOTONS 100000
 #define NUM_BOUNCES 5
 
@@ -40,7 +40,7 @@ struct Photon
 {
   vec3 color;
   vec3 position;
-  vec3 normal;
+  vec3 dir;
   float norm_length;
   Intersection p_intersection;
   vec4 triangle_normal;
@@ -400,40 +400,51 @@ void GenAreaLight(vector<vec4>& lightPositionArr, const vec4& lightPosition){ //
 }
 
 void InitCastPhotons(vector<Triangle> triangles){
-  int min = -1, max = 1;
+  //int min = -1, max = 1;
 
   for(int i = 0; i < NUM_PHOTONS; i++){
-    vec3 initColor = vec3(0.0,0.0,0.0);//vec3(lightColor);
+    vec3 initColor = vec3(1.0,1.0,1.0);//vec3(lightColor);
     vec3 initPosition = toVec3(lightPosition);
-    vec3 randNormal = glm::linearRand(glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
-    //initNormalinitNormal.x, initNormal.y, initNormal.z, 1.0);
+    vec3 randDir = glm::linearRand(glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+
     Photon thisPhoton;
     thisPhoton.color = initColor;
-    thisPhoton.position = initPosition;
-    thisPhoton.normal = randNormal;
 
-    for(int bounce = 0; bounce < NUM_BOUNCES; bounce++){
-      // vec4 randPhotonDir = vec4(min + (glm::linearRand() % static_cast<int>(max - min + 1)),
-      //                           min + (rand() % static_cast<int>(max - min + 1)),
-      //                           min + (rand() % static_cast<int>(max - min + 1)),
-      //                           1);
-      vec3 randPhotonDir = vec3(glm::rotateX(thisPhoton.normal, glm::linearRand(-1.0f, 1.0f)),
-                                glm::rotateY(thisPhoton.normal, glm::linearRand(-1.0f, 1.0f)),
-                                glm::rotateZ(thisPhoton.normal, glm::linearRand(-1.0f, 1.0f)));
-      randPhotonDir = normalize(randPhotonDir);
-      bool intersection;
-      Intersection thisIntersection;
-      intersection = ClosestIntersection(toVec4(thisPhoton.position+0.001f*randPhotonDir), toVec4(randPhotonDir), triangles, thisIntersection);
-      if(intersection){
-        thisPhoton.normal = randPhotonDir;
-        //thisPhoton.norm_length = thisIntersection.distance;
-        thisPhoton.position = toVec3(thisIntersection.position);
-        thisPhoton.color.r *= triangles[thisIntersection.triangleIndex].color.r;
-        thisPhoton.color.g *= triangles[thisIntersection.triangleIndex].color.g;
-        thisPhoton.color.b *= triangles[thisIntersection.triangleIndex].color.b;
-        //thisPhoton.color /= 2.0f;
-        thisPhoton.triangle_normal = triangles[thisIntersection.triangleIndex].normal;
-        PhotonList.push_back(thisPhoton);
+    bool firstIntersection;
+    Intersection initIntersection;
+    firstIntersection = ClosestIntersection(toVec4(initPosition+0.001f*randDir), toVec4(randDir), triangles, initIntersection);
+
+    if(firstIntersection){
+
+      thisPhoton.color.r *= triangles[initIntersection.triangleIndex].color.r;
+      thisPhoton.color.g *= triangles[initIntersection.triangleIndex].color.g;
+      thisPhoton.color.b *= triangles[initIntersection.triangleIndex].color.b;
+      thisPhoton.position = toVec3(initIntersection.position);
+      thisPhoton.dir = randDir;
+
+      for(int bounce = 0; bounce < NUM_BOUNCES; bounce++){
+        // vec4 randPhotonDir = vec4(min + (glm::linearRand() % static_cast<int>(max - min + 1)),
+        //                           min + (rand() % static_cast<int>(max - min + 1)),
+        //                           min + (rand() % static_cast<int>(max - min + 1)),
+        //                           1);
+        vec3 randPhotonDir = glm::rotateX(randDir, glm::linearRand(-0.99f, 0.99f) *(pi/2));
+        randPhotonDir = glm::rotateY(randPhotonDir, glm::linearRand(-0.99f, 0.99f) *(pi/2));
+        randPhotonDir = glm::rotateZ(randPhotonDir, glm::linearRand(-0.99f, 0.99f) *(pi/2));
+        randPhotonDir = normalize(randPhotonDir);
+        bool intersection;
+        Intersection bounceIntersection;
+        intersection = ClosestIntersection(toVec4(thisPhoton.position+0.001f*randPhotonDir), toVec4(randPhotonDir), triangles, bounceIntersection);
+        if(intersection){
+          thisPhoton.dir = randPhotonDir;
+          //thisPhoton.norm_length = thisIntersection.distance;
+          thisPhoton.position = toVec3(bounceIntersection.position);
+          thisPhoton.color.r *= triangles[bounceIntersection.triangleIndex].color.r;
+          thisPhoton.color.g *= triangles[bounceIntersection.triangleIndex].color.g;
+          thisPhoton.color.b *= triangles[bounceIntersection.triangleIndex].color.b;
+          //thisPhoton.color /= 2.0f;
+          //thisPhoton.triangle_normal = triangles[bounceIntersection.triangleIndex].normal;
+          PhotonList.push_back(thisPhoton);
+        }
       }
     }
 
