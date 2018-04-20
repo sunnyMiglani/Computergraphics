@@ -245,8 +245,6 @@ void Update(vec4& cameraPos, mat4& cameraDirection)
 }
 
 
-
-
 bool ClosestIntersection(vec4 start,vec4 dir,const vector<Triangle>& triangles,Intersection& closestIntersection ){
   bool intersection = false;
   closestIntersection.distance = std::numeric_limits<float>::max(); // take large initial value
