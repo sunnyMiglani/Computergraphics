@@ -23,7 +23,7 @@ using glm::mat4;
 #define CHECKING_KEY_STATE true
 #define SHADOW_RENDER false
 #define NUM_RAYS 1
-#define NUM_LIGHT_RAYS 9
+#define NUM_LIGHT_RAYS 1
 #define NUM_PHOTONS 300000
 #define NUM_BOUNCES 5
 
@@ -158,7 +158,7 @@ vec3 getAntiAliasingAvg(int x, int y, vector<Triangle>& triangles, vec4& cameraP
       numForAvg+=1;
 
       //vec3 photonLight = GatherPhotons(triangleIntersection.position, triangles[triangleIntersection.triangleIndex]);
-      totalColor += triangles[triangleIntersection.triangleIndex].color*(indirectLight*directLight);// + photonLight;
+      totalColor += triangles[triangleIntersection.triangleIndex].color*(indirectLight+directLight);// + photonLight;
     }
   }
   avgColor = vec3(totalColor.x / (numForAvg), totalColor.y / (numForAvg), totalColor.z / (numForAvg));
@@ -332,7 +332,7 @@ vec3 DirectLight(const Intersection& i, vector<Triangle>& triangles, bool& shado
 vec3 AreaLight(const Intersection& i, vector<Triangle>& triangles, bool& shadowPixel){
   vec4 position = i.position;
   int triangleIndex = i.triangleIndex;
-  vector<vec4> DArr(NUM_LIGHT_RAYS);
+  //vector<vec4> DArr(NUM_LIGHT_RAYS);
   vec3 totalPixelIntensity = vec3(0, 0, 0);
 
   for(int i = 0; i < NUM_LIGHT_RAYS; i++){
@@ -357,28 +357,28 @@ vec3 AreaLight(const Intersection& i, vector<Triangle>& triangles, bool& shadowP
       if(length_r >= distToClosestIntesect){
         shadowPixel = true;
         D = vec4(0.001,0.001,0.001,0.001);
-        DArr[i] = D;
+        // DArr[i] = D;
       } else {
         shadowPixel = false;
         D = (lightColor*rNorm)/(float)(4*pi*length_r*length_r);
-        DArr[i] = D;
+        // DArr[i] = D;
       }
-    } //else {
-    //   shadowPixel = false;
-    //   D = (lightColor*rNorm)/(float)(4*pi*length_r*length_r);
-    //   DArr[i] = D;
-    // }
+    } else {
+      shadowPixel = false;
+      D = (lightColor*rNorm)/(float)(4*pi*length_r*length_r);
+      //DArr[i] = D;
+    }
 
-    totalPixelIntensity.x *= D.x;
-    totalPixelIntensity.y *= D.y;
-    totalPixelIntensity.z *= D.z;
+    totalPixelIntensity.x += D.x;
+    totalPixelIntensity.y += D.y;
+    totalPixelIntensity.z += D.z;
 
     //return vec3(D.x,D.y,D.z);
   }
-  // vec3 avgPixelIntensity = vec3(totalPixelIntensity.x / (NUM_LIGHT_RAYS), totalPixelIntensity.y / (NUM_LIGHT_RAYS),
-  //                      totalPixelIntensity.z / (NUM_LIGHT_RAYS));
+  vec3 avgPixelIntensity = vec3(totalPixelIntensity.x / (NUM_LIGHT_RAYS), totalPixelIntensity.y / (NUM_LIGHT_RAYS),
+                       totalPixelIntensity.z / (NUM_LIGHT_RAYS));
 
-  return totalPixelIntensity;//avgPixelIntensity;
+  return avgPixelIntensity;
 }
 
 void GenAreaLight(vector<vec4>& lightPositionArr, const vec4& lightPosition){ // TODO: make like positions random
