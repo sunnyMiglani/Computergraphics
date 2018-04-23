@@ -23,7 +23,7 @@ using glm::mat4;
 #define CHECKING_KEY_STATE true
 #define SHADOW_RENDER false
 #define NUM_RAYS 1
-#define NUM_LIGHT_RAYS 1
+#define NUM_LIGHT_RAYS 2
 #define NUM_PHOTONS 100000
 #define NUM_BOUNCES 5
 
@@ -368,7 +368,7 @@ vec3 AreaLight(const Intersection& i, vector<Triangle>& triangles, bool& shadowP
 
     totalPixelIntensity += toVec3(D);
   }
-  vec3 avgPixelIntensity = totalPixelIntensity / NUM_LIGHT_RAYS;
+  vec3 avgPixelIntensity = totalPixelIntensity / (float) NUM_LIGHT_RAYS;
   return avgPixelIntensity;
 }
 
