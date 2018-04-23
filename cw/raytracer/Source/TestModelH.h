@@ -75,8 +75,8 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	triangles.push_back( Triangle( C, D, B, white ) ); //green
 
 	// Left wall
-	triangles.push_back( Triangle( A, E, C, purple ) );
-	triangles.push_back( Triangle( C, E, G, purple ) );
+	triangles.push_back( Triangle( A, E, C, red ) ); //purple
+	triangles.push_back( Triangle( C, E, G, red ) ); //purple
 
 	// Right wall
 	triangles.push_back( Triangle( F, B, D, green ) ); //yellow
