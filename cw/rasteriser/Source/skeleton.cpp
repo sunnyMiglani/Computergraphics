@@ -53,6 +53,9 @@ void Update(vec4& cameraPos, mat4& cameraDirection);
 void Draw(screen* screen);
 void VertexShader(vec4& v, Pixel& p);
 mat4 rotation(float yaw);
+float getLightDepth(Pixel p);
+void populateShadowBuffer();
+void VertexShadowShader(vec4& vertex, Pixel& p);
 
 /*
   ---------------------------------------------------
@@ -66,12 +69,16 @@ vec4 cameraPos( 0, 0, -3.001,1);
 glm::mat4 R;
 float yaw = 0; // Yaw angle controlling camera rotation around y-axis
 mat4 cameraDirection =  rotation(0);
-float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 vec3 lightPos(0,-0.5,2.5); // (0, -0.5, 2.5)
 vec3 lightPower = 16.0f*vec3( 1, 1, 1 );
 vec3 indirectLightPowerPerArea = 0.5f*vec3( 1, 1, 1 );
-
 vec3 reflectanceGlobal = vec3(1,1,1);
+vec4 torchPos = cameraPos;
+mat4 torchDir = cameraDirection;
+float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
+float shadowBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
+Pixel shadowPixels[SCREEN_HEIGHT][SCREEN_WIDTH];
+
 
 /*
  ----------------------------------------------------
@@ -79,7 +86,7 @@ vec3 reflectanceGlobal = vec3(1,1,1);
 
 
 int main(int argc, char* argv[])
-{
+{   
 
   screen *screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
   LoadTestModel(triangles);
@@ -156,15 +163,95 @@ void Update(vec4& cameraPos, mat4& cameraDirection)
    }
 }
 
+
+void populateShadowBuffer(){
+
+    for(uint32_t i = 0; i < triangles.size(); i++){
+
+      Triangle triangle = triangles[i];
+      // Transform each vertex from 3D world position to 2D image position:
+
+      vec3 normal  = vec3(triangle.normal.x,triangle.normal.y,triangle.normal.z);
+
+      vector<Pixel> vertexShadowPixels(3);
+
+      // Here the vertexShader will populate the vertexPixels[] values.
+      VertexShadowShader(triangle.v0, vertexShadowPixels[0]);
+      VertexShadowShader(triangle.v1, vertexShadowPixels[1]);
+      VertexShadowShader(triangle.v2, vertexShadowPixels[2]);
+
+
+      int maxX = -numeric_limits<int>::max();
+      int minX = +numeric_limits<int>::max();
+      int maxY = -numeric_limits<int>::max();
+      int minY = +numeric_limits<int>::max();
+
+
+      // Get the borders of the square for min_max values of the set of triangles.
+      for(size_t i = 0; i < 3; i++){
+        maxX = max(maxX,vertexShadowPixels[i].x);
+        minX = min(minX,vertexShadowPixels[i].x);
+        maxY = max(maxY,vertexShadowPixels[i].y);
+        minY = min(minY,vertexShadowPixels[i].y);
+
+      }
+      for(int row = minY; row < maxY; row++){ // looping through the square
+        if (row < 0 || row >= SCREEN_HEIGHT) continue;
+        for(int col = minX; col < maxX; col++){
+            if (col < 0 || col > SCREEN_WIDTH) continue;
+
+            Pixel tPixel;
+
+            tPixel.normal = normal;
+
+            int y = row;
+            int x = col;
+            tPixel.shadow_row = row;
+            tPixel.shadow_col = col;
+
+            Pixel v0 = vertexShadowPixels[0];
+            Pixel v1 = vertexShadowPixels[1];
+            Pixel v2 = vertexShadowPixels[2];
+
+            vec2 e0 = vec2((v1.x - v0.x),(v1.y - v0.y)),
+                 e1 = vec2((v2.x - v0.x),(v2.y - v0.y)),
+                 e2 = vec2((x - v0.x),(y - v0.y));
+            float d00 = glm::dot(e0, e0);
+            float d01 = glm::dot(e0, e1);
+            float d11 = glm::dot(e1, e1);
+            float d20 = glm::dot(e2, e0);
+            float d21 = glm::dot(e2, e1);
+            float denom = d00 * d11 - d01 * d01;
+            float v = (d11 * d20 - d01 * d21) / denom;
+            float w = (d00 * d21 - d01 * d20) / denom;
+            float u = 1.0f - v - w;
+            // if point p is inside triangles defined by vertices v0, v1, v2
+            if (0 <= u && u <= 1 && 0 <= v && v <= 1 && 0 <= w && w <= 1) {
+              tPixel.shadow_depth = v0.shadow_depth * u +  v1.shadow_depth * v + v2.shadow_depth * w;
+              if(tPixel.shadow_depth > depthBuffer[row][col]){
+                  shadowBuffer[row][col] = tPixel.shadow_depth;
+                  tPixel.shadow_pos = (v0.shadow_pos * v0.shadow_depth * u
+                              + v1.shadow_pos * v1.shadow_depth * v
+                              + v2.shadow_pos * v2.shadow_depth * w) / tPixel.shadow_depth;
+                }
+            }
+        }
+      }
+  }
+}
+
+
 void Draw(screen *screen)
 {
   for(int y = 0; y < SCREEN_HEIGHT; y++){ // Set the depth buffer to max values
     for(int x = 0; x < SCREEN_WIDTH; x++){
       depthBuffer[y][x] = 0;//-numeric_limits<int>::max();
+      shadowBuffer[y][x] = 0;
     }
   }
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
+  populateShadowBuffer();
 
   for(uint32_t i = 0; i < triangles.size(); i++){
 
@@ -179,14 +266,6 @@ void Draw(screen *screen)
     VertexShader(triangle.v0, vertexPixels[0]);
     VertexShader(triangle.v1, vertexPixels[1]);
     VertexShader(triangle.v2, vertexPixels[2]);
-
-
-
-    // printf("------- New Triangle -----------\n");
-    // printf("Vertex 0 : %f, %f, %f\n",triangle.vertex1.pos.x, triangle.vertex1.pos.y, triangle.vertex1.pos.z );
-    // printf("Vertex 1 : %f, %f, %f\n",triangle.vertex2.pos.x, triangle.vertex2.pos.y, triangle.vertex2.pos.z );
-    // printf("Vertex 2 : %f, %f, %f\n",triangle.vertex3.pos.x, triangle.vertex3.pos.y, triangle.vertex3.pos.z );
-    // printf("---------------------------------\n");
 
 
 
@@ -238,7 +317,8 @@ void Draw(screen *screen)
                 tPixel.pos = (v0.pos * v0.zinv * u
                             + v1.pos * v1.zinv * v
                             + v2.pos * v2.zinv * w) / tPixel.zinv;
-                vec3 r_vec = lightPos - tPixel.pos;
+                vec3 torchPos_v3 = vec3(torchPos.x, torchPos.y, torchPos.z);
+                vec3 r_vec = torchPos_v3 - tPixel.pos;
 
                 float length_r = glm::length(r_vec);
                 float rNorm = glm::dot(glm::normalize(r_vec),normal);
@@ -250,6 +330,10 @@ void Draw(screen *screen)
                 tPixel.illumination = dVal + indirectLightPowerPerArea;
                 // printf("Pixel illumination : %f %f %f\n",tPixel.illumination.x ,tPixel.illumination.y ,tPixel.illumination.z  );
                 vec3 pixelColour = triangle.color * tPixel.illumination;
+                float lightDepth = getLightDepth(tPixel);
+                if( lightDepth * 0.01f >  shadowBuffer[row][col]){
+                    pixelColour = vec3(0.0f, 0.0f, 0.0f);
+                }
                 PutPixelSDL(screen, col, row, pixelColour);
               }
           }
@@ -258,6 +342,21 @@ void Draw(screen *screen)
   }
 
 
+}
+
+float getLightDepth(Pixel p){
+    vec4 posV4 = vec4(p.pos.x, p.pos.y, p.pos.z, 0);
+    vec4 point = torchDir*vec4(posV4 - torchPos);
+    return 1.0f/point.z;
+}
+
+void VertexShadowShader(vec4& vertex, Pixel& p){
+
+  vec4 point = torchDir*vec4(vertex - torchPos);
+  p.x = (int) (FOCAL_LENGTH * point.x/point.z) + (SCREEN_WIDTH/2);
+  p.y = (int) (FOCAL_LENGTH * point.y/point.z) + (SCREEN_HEIGHT/2);
+  p.shadow_pos = vec3(point.x, point.y, point.z);
+  p.shadow_depth = 1.0f/point.z;
 }
 
 // Uses the formula
