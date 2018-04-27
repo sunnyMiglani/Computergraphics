@@ -22,8 +22,8 @@ using glm::mat4;
 #define FULLSCREEN_MODE false
 #define CHECKING_KEY_STATE true
 #define SHADOW_RENDER false
-#define NUM_RAYS 1
-#define NUM_LIGHT_RAYS 2
+#define NUM_RAYS 2
+#define NUM_LIGHT_RAYS 1
 #define NUM_PHOTONS 100000
 #define NUM_BOUNCES 5
 
@@ -43,7 +43,7 @@ struct Photon
   vec3 dir;
   float norm_length;
   Intersection p_intersection;
-  vec4 triangle_normal;
+  vec3 triangle_normal;
 };
 
 
@@ -106,12 +106,14 @@ int main( int argc, char* argv[] )
 
   InitCastPhotons(triangles);
 
-  while( NoQuitMessageSDL() )
+  //while( NoQuitMessageSDL() )
     {
       Update(cameraPos,cameraDirection);
       Draw(screen, triangles, cameraPos, cameraDirection);
       SDL_Renderframe(screen);
     }
+  Update(cameraPos,cameraDirection);
+  std::cin.get();
 
   SDL_SaveImage( screen, "screenshot.bmp" );
 
@@ -153,12 +155,12 @@ vec3 getAntiAliasingAvg(int x, int y, vector<Triangle>& triangles, vec4& cameraP
       //   shadedPixelTotal.z += tmpShadedPixel.z;
       // }
       // vec3 shadedPixel = vec3(shadedPixelTotal.x / (NUM_LIGHT_RAYS), shadedPixelTotal.y / (NUM_LIGHT_RAYS), shadedPixelTotal.z / (NUM_LIGHT_RAYS));
-      // vec3 directLight = AreaLight(triangleIntersection,triangles,shadowPixel);
+      vec3 directLight = AreaLight(triangleIntersection,triangles,shadowPixel);
 
       numForAvg+=1;
 
       vec3 photonLight = GatherPhotons(triangleIntersection.position, triangles[triangleIntersection.triangleIndex]);
-      totalColor += photonLight;//triangles[triangleIntersection.triangleIndex].color*(indirectLight*directLight) + photonLight;
+      totalColor += triangles[triangleIntersection.triangleIndex].color*(indirectLight*directLight) + photonLight;
     }
   }
   avgColor = totalColor / numForAvg;
@@ -389,19 +391,19 @@ void GenAreaLight(vector<vec4>& lightPositionArr, const vec4& lightPosition){ //
 }
 
 void InitCastPhotons(vector<Triangle> triangles){
-  int min = -0.99f, max = 0.99;
+  float min = -0.99f, max = 0.99f;
 
   for(int i = 0; i < NUM_PHOTONS; i++){
     vec3 color = vec3(1.f,1.f,1.f); // vec3(lightColor);
     vec3 position = toVec3(lightPosition);
-    vec3 randPhotonDir = glm::linearRand(glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
-    randPhotonDir = normalize(randPhotonDir);
+    vec3 randPhotonDir = glm::linearRand<float>(glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+    randPhotonDir = glm::normalize(randPhotonDir);
 
     Intersection thisIntersection;
     bool initialRay;
 
     for(int bounce = 0; bounce < NUM_BOUNCES; bounce++){
-      if(ClosestIntersection(toVec4(position+0.001f*randPhotonDir), toVec4(randPhotonDir), triangles, thisIntersection)){
+      if(ClosestIntersection(toVec4(position), toVec4(randPhotonDir), triangles, thisIntersection)){
         Photon thisPhoton;
         position = toVec3(thisIntersection.position);
         thisPhoton.position = position;
@@ -412,16 +414,19 @@ void InitCastPhotons(vector<Triangle> triangles){
         color.b *= triangles[thisIntersection.triangleIndex].color.b;
         thisPhoton.color = color;//glm::clamp(color, vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f));
 
-        thisPhoton.triangle_normal = triangles[thisIntersection.triangleIndex].normal;
+        thisPhoton.triangle_normal = toVec3(triangles[thisIntersection.triangleIndex].normal);
 
-        randPhotonDir = toVec3(triangles[thisIntersection.triangleIndex].normal);
-        randPhotonDir = glm::rotateX(randPhotonDir, glm::linearRand(min, max) *(pi/2.f)); //0.99 so that can't intersect with itself
-        randPhotonDir = glm::rotateY(randPhotonDir, glm::linearRand(min, max) *(pi/2.f));
-        randPhotonDir = glm::rotateZ(randPhotonDir, glm::linearRand(min, max) *(pi/2.f));
+        randPhotonDir = thisPhoton.triangle_normal;
+        randPhotonDir = glm::rotateX(randPhotonDir, glm::linearRand(min, max) * (pi/2.f)); //0.99 so that can't intersect with itself
+        randPhotonDir = glm::rotateY(randPhotonDir, glm::linearRand(min, max) * (pi/2.f));
+        randPhotonDir = glm::rotateZ(randPhotonDir, glm::linearRand(min, max) * (pi/2.f));
         randPhotonDir = normalize(randPhotonDir);
 
         if(!initialRay) PhotonList.push_back(thisPhoton);
         initialRay = false;
+        position.x += randPhotonDir.x*0.00015f;
+        position.y += randPhotonDir.y*0.00015f;
+        position.z += randPhotonDir.z*0.00015f;
       } else break;
     }
 
@@ -492,20 +497,22 @@ void InitCastPhotons(vector<Triangle> triangles){
 vec3 GatherPhotons(vec4 rayPos, Triangle& triangle){
   //GLOBAL ILLUMINATION
   vec3 totalColor = vec3(0.f,0.f,0.f);
-  float numNeighbors = 0.f;
-  float searchRadius = 0.4;
+  int numNeighbors = 0;
+  float searchRadius = 0.4f;
+  float searchRadius2 = 0.16f;
   //float searchRadius2 = searchRadius*searchRadius;
   for(size_t p = 0; p < PhotonList.size(); p++){
-    Photon thisPhoton = PhotonList[p];
-    float distanceToPhoton = glm::distance(thisPhoton.position, toVec3(rayPos));
-    if(distanceToPhoton < searchRadius){
+    Photon& thisPhoton = PhotonList[p];
+    float distanceToPhoton = glm::distance2(thisPhoton.position, toVec3(rayPos));
+    float alpha = glm::dot(thisPhoton.triangle_normal, toVec3(triangle.normal));
+    if(distanceToPhoton < searchRadius2zca && alpha > 0.95f){
       // float dot = glm::dot(toVec3(triangle.v0) - thisPhoton.position, toVec3(triangle.normal));
 			// if (dot == 0.0f){
       //   totalColor += thisPhoton.color*(searchRadius-distanceToPhoton);
       //   numNeighbors += 1;
       // } else {
-      totalColor += thisPhoton.color;
-      numNeighbors += 1;
+      totalColor += thisPhoton.color;//*((searchRadius-distanceToPhoton)*4);
+      numNeighbors++;
       // }
     }
   }
