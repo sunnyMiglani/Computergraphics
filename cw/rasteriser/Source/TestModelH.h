@@ -15,6 +15,7 @@ struct Pixel
   glm::vec3 normal;
   glm::vec3 reflectance;
   glm::vec3 pos;
+  glm::vec3 worldPos;
   float shadow_depth;
   glm::vec3 shadow_pos;
   int shadow_row;

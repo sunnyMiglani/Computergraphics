@@ -86,8 +86,7 @@ Pixel shadowPixels[SCREEN_HEIGHT][SCREEN_WIDTH];
 
 
 int main(int argc, char* argv[])
-{   
-
+{
   screen *screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
   LoadTestModel(triangles);
 
@@ -243,6 +242,8 @@ void populateShadowBuffer(){
 
 void Draw(screen *screen)
 {
+    // lightPos = vec3(cameraPos.x, cameraPos.y, cameraPos.z);
+
   for(int y = 0; y < SCREEN_HEIGHT; y++){ // Set the depth buffer to max values
     for(int x = 0; x < SCREEN_WIDTH; x++){
       depthBuffer[y][x] = 0;//-numeric_limits<int>::max();
@@ -314,11 +315,14 @@ void Draw(screen *screen)
             tPixel.zinv = v0.zinv * u +  v1.zinv * v + v2.zinv * w;
             if(tPixel.zinv > depthBuffer[row][col]){
                 depthBuffer[row][col] = tPixel.zinv;
+                tPixel.worldPos = (v0.worldPos * v0.zinv * u
+                            + v1.worldPos * v1.zinv * v
+                            + v2.worldPos * v2.zinv * w) / tPixel.zinv;
                 tPixel.pos = (v0.pos * v0.zinv * u
                             + v1.pos * v1.zinv * v
                             + v2.pos * v2.zinv * w) / tPixel.zinv;
-                vec3 torchPos_v3 = vec3(torchPos.x, torchPos.y, torchPos.z);
-                vec3 r_vec = torchPos_v3 - tPixel.pos;
+                // vec3 torchPos_v3 = vec3(torchPos.x, torchPos.y, torchPos.z);
+                vec3 r_vec = lightPos - tPixel.worldPos;
 
                 float length_r = glm::length(r_vec);
                 float rNorm = glm::dot(glm::normalize(r_vec),normal);
@@ -373,6 +377,7 @@ void VertexShader(vec4& vertex, Pixel& p){
   p.x = (int) (FOCAL_LENGTH * point.x/point.z) + (SCREEN_WIDTH/2);
   p.y = (int) (FOCAL_LENGTH * point.y/point.z) + (SCREEN_HEIGHT/2);
   p.pos = vec3(point.x, point.y, point.z);
+  p.worldPos = vec3(vertex.x,vertex.y,vertex.z);
   p.zinv = 1.0f/point.z;
 }
 
