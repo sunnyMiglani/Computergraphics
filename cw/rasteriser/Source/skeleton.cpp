@@ -133,11 +133,11 @@ void initScene(){
     myCamera.cameraDir = vec3(0.f, 0.f, 1.f);
 
 
-    shadowCamera.cameraPos = vec3(0.3f, 1.5f, 0.f);
-    shadowCamera.cameraDir = vec3(0.3f, -1.f, 0.2f);
-    shadowCamera.cameraUp = vec3(0.f, 0.f, 1.f);
-    shadowCamera.fovy = glm::radians(90.f);
-    shadowCamera.far = 10.f;
+    shadowCamera.cameraPos = myCamera.cameraPos;//vec3(0.f,1.f,0.f)//vec3(0,-0.5,2.5);
+    shadowCamera.cameraDir = myCamera.cameraDir; //vec3(0.3f, -1.f, 0.2f);
+    shadowCamera.cameraUp = myCamera.cameraUp; //vec3(0.f, 0.f, 1.f);
+    shadowCamera.fovy = glm::radians(100.f);
+    shadowCamera.far = 100.f;
 
     // myCamera = shadowCamera;
 }
@@ -246,9 +246,9 @@ void populateShadowBuffer(){
       vector<Pixel> vertexShadowPixels(3);
 
       // Here the vertexShader will populate the vertexPixels[] values.
-      VertexShader(triangle.v0, vertexShadowPixels[0]);
-      VertexShader(triangle.v1, vertexShadowPixels[1]);
-      VertexShader(triangle.v2, vertexShadowPixels[2]);
+      VertexShadowShader(triangle.v0, vertexShadowPixels[0]);
+      VertexShadowShader(triangle.v1, vertexShadowPixels[1]);
+      VertexShadowShader(triangle.v2, vertexShadowPixels[2]);
 
 
 
@@ -317,7 +317,7 @@ void Draw(screen *screen)
   for(int y = 0; y < SCREEN_HEIGHT; y++){ // Set the depth buffer to max values
     for(int x = 0; x < SCREEN_WIDTH; x++){
       depthBuffer[y][x] = 0;//-numeric_limits<int>::max();
-      shadowBuffer[y][x] = -1; // 1 is far, -1 is near
+      shadowBuffer[y][x] = 0; // 1 is far, -1 is near
     }
   }
   /* Clear buffer */
@@ -442,7 +442,8 @@ bool getLightDepth(Pixel p){
     float shadowDepth = shadowBuffer[y][x];
 
 
-    return (shadowDepth < (1.0f/posV4.z));
+
+    return (shadowDepth > (posV4.z));
 }
 
 void VertexShadowShader(vec4& vertex, Pixel& p){
@@ -450,6 +451,9 @@ void VertexShadowShader(vec4& vertex, Pixel& p){
     vec4 point = shadowCamera.viewMatrix * (vertex);
     p.viewPos = vec3(point); // view coordintes
     point =  shadowCamera.projectionMatrix * point;
+    p.x = (int) (FOCAL_LENGTH * point.x/point.w) + (SCREEN_WIDTH/2);
+    p.y = (int) (FOCAL_LENGTH * -point.y/point.w) + (SCREEN_HEIGHT/2);
+    p.worldPos = vec3(vertex);
     p.zinv = 1.0f/point.z;
     p.projectPos = point;
 }
