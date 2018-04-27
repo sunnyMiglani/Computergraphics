@@ -54,7 +54,7 @@ void Update(vec4& cameraPos, mat4& cameraDirection);
 void Draw(screen* screen);
 void VertexShader(vec4& v, Pixel& p);
 mat4 rotation(float yaw);
-float getLightDepth(Pixel p);
+bool getLightDepth(Pixel p);
 void populateShadowBuffer();
 void VertexShadowShader(vec4& vertex, Pixel& p);
 
@@ -317,7 +317,7 @@ void Draw(screen *screen)
   for(int y = 0; y < SCREEN_HEIGHT; y++){ // Set the depth buffer to max values
     for(int x = 0; x < SCREEN_WIDTH; x++){
       depthBuffer[y][x] = 0;//-numeric_limits<int>::max();
-      shadowBuffer[y][x] = 0; // 1 is far, -1 is near
+      shadowBuffer[y][x] = -1; // 1 is far, -1 is near
     }
   }
   /* Clear buffer */
@@ -409,10 +409,11 @@ void Draw(screen *screen)
                 vec3 dVal = lightPower * (rNorm / ((float)( 4.0f * pi * length_r * length_r)));
 
                 tPixel.illumination = dVal + indirectLightPowerPerArea;
-                // printf("Pixel illumination : %f %f %f\n",tPixel.illumination.x ,tPixel.illumination.y ,tPixel.illumination.z  );
                 vec3 pixelColour = triangle.color * tPixel.illumination;
-                float lightDepth = getLightDepth(tPixel);
-                if( lightDepth < shadowBuffer[row][col]){
+                bool isLit = getLightDepth(tPixel);
+
+
+                if( !isLit){
                     pixelColour = vec3(0.0f, 0.0f, 0.0f);
                 }
 
@@ -427,11 +428,21 @@ void Draw(screen *screen)
 }
 
 
-float getLightDepth(Pixel p){
+bool getLightDepth(Pixel p){
+
 
     vec4 posV4 = shadowCamera.projectionMatrix * (shadowCamera.viewMatrix * vec4(p.worldPos,1));
     posV4 = posV4 / posV4.w;
-    return posV4.z;
+    int x = (int) (FOCAL_LENGTH * posV4.x) + (SCREEN_WIDTH/2);
+    int y = (int) (FOCAL_LENGTH * -posV4.y) + (SCREEN_HEIGHT/2);
+    if (y < 0 || y >= SCREEN_HEIGHT) return -1;
+    if (x < 0 || x >= SCREEN_WIDTH) return -1;
+
+
+    float shadowDepth = shadowBuffer[y][x];
+
+
+    return (shadowDepth < (1.0f/posV4.z));
 }
 
 void VertexShadowShader(vec4& vertex, Pixel& p){
