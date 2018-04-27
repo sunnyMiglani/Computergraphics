@@ -4,6 +4,7 @@
 #include "SDLauxiliary.h"
 #include "TestModelH.h"
 #include <stdint.h>
+#include <glm/gtc/matrix_transform.hpp>
 
 using namespace std;
 using glm::vec3;
@@ -73,11 +74,43 @@ vec3 lightPos(0,-0.5,2.5); // (0, -0.5, 2.5)
 vec3 lightPower = 16.0f*vec3( 1, 1, 1 );
 vec3 indirectLightPowerPerArea = 0.5f*vec3( 1, 1, 1 );
 vec3 reflectanceGlobal = vec3(1,1,1);
-vec4 torchPos = cameraPos;
+vec3 torchPos = vec3(1,1,1);
 mat4 torchDir = cameraDirection;
 float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 float shadowBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 Pixel shadowPixels[SCREEN_HEIGHT][SCREEN_WIDTH];
+mat4 inverseCameraRotation; // = glm::inverse(cameraDirection);
+
+
+
+
+struct Camera {
+
+
+    float fovy = glm::radians(60.f);
+    float aspectRatio = (float)(SCREEN_WIDTH/SCREEN_HEIGHT);
+    float near = 0.01f;
+    float far = 1000.f;
+    vec3 cameraPos = vec3(0);
+    vec3 cameraDir = vec3(0, 0, -1);
+    vec3 cameraUp = vec3(0,1,0);
+
+
+    mat4 viewMatrix;
+    mat4 projectionMatrix;
+
+
+    void computeViewMatrix(){
+        viewMatrix = glm::lookAt(cameraPos, cameraPos + cameraDir, cameraUp );
+    }
+
+    void computeProjectionMatrix(){
+        projectionMatrix =  glm::perspective(fovy, aspectRatio, near, far);
+    }
+};
+
+Camera myCamera;
+
 
 
 /*
@@ -85,8 +118,28 @@ Pixel shadowPixels[SCREEN_HEIGHT][SCREEN_WIDTH];
 */
 
 
+mat4 rotation(float yaw){
+  mat4 R_y(cos(yaw), 0, sin(yaw), 0,
+              0    , 1,    0    , 0,
+          -sin(yaw), 0, cos(yaw), 0,
+              0    , 0,    0    , 1);
+  return R_y;
+}
+
+
+
+void initScene(){
+    myCamera.cameraPos = vec3(0.f,0.f,-4.5f);
+    myCamera.cameraDir = vec3(0.f,0.f,1.f);
+
+    torchPos = vec3(0.3f,0.9f,0.f);
+}
+
+
 int main(int argc, char* argv[])
 {
+    initScene();
+
   screen *screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
   LoadTestModel(triangles);
 
@@ -105,6 +158,8 @@ int main(int argc, char* argv[])
 /*Place updates of parameters here*/
 void Update(vec4& cameraPos, mat4& cameraDirection)
 {
+
+
     static int t = SDL_GetTicks();
 
     vec4 right(cameraDirection[0][0], cameraDirection[0][1], cameraDirection[0][2], 1);
@@ -128,10 +183,10 @@ void Update(vec4& cameraPos, mat4& cameraDirection)
        else {
     //Move Camera
          if(keystate[SDL_SCANCODE_UP]){
-           cameraPos += (forward * 0.05f);
+           myCamera.cameraPos += (myCamera.cameraDir * 0.05f);
          }
          if(keystate[SDL_SCANCODE_DOWN]){
-           cameraPos -= (forward * 0.05f);
+           myCamera.cameraPos -= (myCamera.cameraDir * 0.05f);
          }
          if(keystate[SDL_SCANCODE_LEFT]){
            yaw -= 0.04;
@@ -160,6 +215,9 @@ void Update(vec4& cameraPos, mat4& cameraDirection)
            }
        }
    }
+   inverseCameraRotation = glm::inverse(cameraDirection);
+   myCamera.computeViewMatrix();
+   myCamera.computeProjectionMatrix();
 }
 
 
@@ -227,7 +285,7 @@ void populateShadowBuffer(){
             // if point p is inside triangles defined by vertices v0, v1, v2
             if (0 <= u && u <= 1 && 0 <= v && v <= 1 && 0 <= w && w <= 1) {
               tPixel.shadow_depth = v0.shadow_depth * u +  v1.shadow_depth * v + v2.shadow_depth * w;
-              if(tPixel.shadow_depth > depthBuffer[row][col]){
+              if(tPixel.shadow_depth < shadowBuffer[row][col]){ // -1 to 1.
                   shadowBuffer[row][col] = tPixel.shadow_depth;
                   tPixel.shadow_pos = (v0.shadow_pos * v0.shadow_depth * u
                               + v1.shadow_pos * v1.shadow_depth * v
@@ -247,12 +305,13 @@ void Draw(screen *screen)
   for(int y = 0; y < SCREEN_HEIGHT; y++){ // Set the depth buffer to max values
     for(int x = 0; x < SCREEN_WIDTH; x++){
       depthBuffer[y][x] = 0;//-numeric_limits<int>::max();
-      shadowBuffer[y][x] = 0;
+      shadowBuffer[y][x] = 1; // 1 is far, -1 is near
     }
   }
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
-  populateShadowBuffer();
+
+  // populateShadowBuffer();
 
   for(uint32_t i = 0; i < triangles.size(); i++){
 
@@ -284,6 +343,7 @@ void Draw(screen *screen)
       maxY = max(maxY,vertexPixels[i].y);
       minY = min(minY,vertexPixels[i].y);
 
+      vertexPixels[i].projectPos /= vertexPixels[i].projectPos.w;
     }
     for(int row = minY; row < maxY; row++){ // looping through the square
       if (row < 0 || row >= SCREEN_HEIGHT) continue;
@@ -318,13 +378,15 @@ void Draw(screen *screen)
                 tPixel.worldPos = (v0.worldPos * v0.zinv * u
                             + v1.worldPos * v1.zinv * v
                             + v2.worldPos * v2.zinv * w) / tPixel.zinv;
-                tPixel.pos = (v0.pos * v0.zinv * u
-                            + v1.pos * v1.zinv * v
-                            + v2.pos * v2.zinv * w) / tPixel.zinv;
-                // vec3 torchPos_v3 = vec3(torchPos.x, torchPos.y, torchPos.z);
-                vec3 r_vec = lightPos - tPixel.worldPos;
 
-                float length_r = glm::length(r_vec);
+                // tPixel.viewPos = (v0.viewPos * v0.zinv * u
+                //             + v1.viewPos * v1.zinv * v
+                //             + v2.viewPos * v2.zinv * w) / tPixel.zinv;
+
+                vec3 torchPos_v3 = vec3(torchPos);
+                vec3 r_vec = torchPos_v3 - tPixel.worldPos;
+
+                float length_r =0.5+ glm::length(r_vec);
                 float rNorm = glm::dot(glm::normalize(r_vec),normal);
 
                 if (rNorm < 0) rNorm = 0;
@@ -335,10 +397,12 @@ void Draw(screen *screen)
                 // printf("Pixel illumination : %f %f %f\n",tPixel.illumination.x ,tPixel.illumination.y ,tPixel.illumination.z  );
                 vec3 pixelColour = triangle.color * tPixel.illumination;
                 float lightDepth = getLightDepth(tPixel);
-                if( lightDepth * 0.01f >  shadowBuffer[row][col]){
-                    pixelColour = vec3(0.0f, 0.0f, 0.0f);
-                }
-                PutPixelSDL(screen, col, row, pixelColour);
+                // std::cout << "LightDepth : " << lightDepth << " shadow : " << shadowBuffer[row][col]<< '\n';
+                // if( lightDepth < shadowBuffer[row][col]){
+                //     pixelColour = vec3(0.0f, 0.0f, 0.0f);
+                // }
+                PutPixelSDL(screen, col, row, pixelColour);//vec3(shadowBuffer[row][col])
+                // PutPixelSDL(screen, col, row, vec3(shadowBuffer[row][col]));//vec3(shadowBuffer[row][col])
               }
           }
         }
@@ -349,18 +413,24 @@ void Draw(screen *screen)
 }
 
 float getLightDepth(Pixel p){
-    vec4 posV4 = vec4(p.pos.x, p.pos.y, p.pos.z, 0);
-    vec4 point = torchDir*vec4(posV4 - torchPos);
-    return 1.0f/point.z;
+
+    vec4 posV4 = torchDir * vec4(p.worldPos,1);
+    posV4 = posV4 / posV4.w;
+
+    // vec4 point = torchDir*vec4(posV4 - torchPos);
+    return posV4.z;
 }
 
 void VertexShadowShader(vec4& vertex, Pixel& p){
 
-  vec4 point = torchDir*vec4(vertex - torchPos);
-  p.x = (int) (FOCAL_LENGTH * point.x/point.z) + (SCREEN_WIDTH/2);
-  p.y = (int) (FOCAL_LENGTH * point.y/point.z) + (SCREEN_HEIGHT/2);
-  p.shadow_pos = vec3(point.x, point.y, point.z);
-  p.shadow_depth = 1.0f/point.z;
+  vec4 point = torchDir * (vertex);
+  point = point/point.w;
+  p.x = (int) (FOCAL_LENGTH * point.x) + (SCREEN_WIDTH/2);
+  p.y = (int) (FOCAL_LENGTH * point.y) + (SCREEN_HEIGHT/2);
+  p.shadow_pos = vec3(point.x, point.y, point.z); // light position
+  p.shadow_depth = point.z;
+  p.worldPos = vec3(vertex); // world position
+
 }
 
 // Uses the formula
@@ -370,24 +440,20 @@ void VertexShadowShader(vec4& vertex, Pixel& p){
     source and n̂ is the normal of the surface
 
 */
-
+//
 void VertexShader(vec4& vertex, Pixel& p){
 
-  vec4 point = cameraDirection*vec4(vertex - cameraPos);
-  p.x = (int) (FOCAL_LENGTH * point.x/point.z) + (SCREEN_WIDTH/2);
-  p.y = (int) (FOCAL_LENGTH * point.y/point.z) + (SCREEN_HEIGHT/2);
-  p.pos = vec3(point.x, point.y, point.z);
-  p.worldPos = vec3(vertex.x,vertex.y,vertex.z);
+  vec4 point = myCamera.viewMatrix * (vertex);
+  p.viewPos = vec3(point); // view coordintes
+  point =  myCamera.projectionMatrix * point;
+  p.x = (int) (FOCAL_LENGTH * point.x/point.w) + (SCREEN_WIDTH/2);
+  p.y = (int) (FOCAL_LENGTH * -point.y/point.w) + (SCREEN_HEIGHT/2);
+  p.worldPos = vec3(vertex);  // world coordinates
   p.zinv = 1.0f/point.z;
+  p.projectPos = point;
 }
 
-mat4 rotation(float yaw){
-  mat4 R_y(cos(yaw), 0, sin(yaw), 0,
-              0    , 1,    0    , 0,
-          -sin(yaw), 0, cos(yaw), 0,
-              0    , 0,    0    , 1);
-  return R_y;
-}
+
 
 //https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/rasterization-stage
 /*void BarycentricCoordinates(vector<Pixel>& vertexPixels,int y, int x, bool& pointInTriangle, Pixel& pixel){ // p is a pixel or point in triangle

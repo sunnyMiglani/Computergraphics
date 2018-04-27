@@ -14,12 +14,13 @@ struct Pixel
   glm::vec3 illumination;
   glm::vec3 normal;
   glm::vec3 reflectance;
-  glm::vec3 pos;
+  glm::vec3 viewPos;
   glm::vec3 worldPos;
   float shadow_depth;
   glm::vec3 shadow_pos;
   int shadow_row;
   int shadow_col;
+  glm::vec4 projectPos;
 
 };
 
@@ -202,13 +203,13 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 		triangles[i].v1 -= vec4(1,1,1,1);
 		triangles[i].v2 -= vec4(1,1,1,1);
 
-		triangles[i].v0.x *= -1;
-		triangles[i].v1.x *= -1;
-		triangles[i].v2.x *= -1;
+		triangles[i].v0.x *= 1;
+		triangles[i].v1.x *= 1;
+		triangles[i].v2.x *= 1;
 
-		triangles[i].v0.y *= -1;
-		triangles[i].v1.y *= -1;
-		triangles[i].v2.y *= -1;
+		triangles[i].v0.y *= 1;
+		triangles[i].v1.y *= 1;
+		triangles[i].v2.y *= 1;
 
 		triangles[i].v0.w = 1.0;
 		triangles[i].v1.w = 1.0;
