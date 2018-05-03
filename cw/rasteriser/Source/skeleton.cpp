@@ -80,7 +80,7 @@ float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 float shadowBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 Pixel shadowPixels[SCREEN_HEIGHT][SCREEN_WIDTH];
 mat4 inverseCameraRotation; // = glm::inverse(cameraDirection);
-
+bool renderShadow = false;
 
 
 
@@ -131,13 +131,14 @@ mat4 rotation(float yaw){
 void initScene(){
     myCamera.cameraPos = vec3(0.f, 0.f, -4.5f);
     myCamera.cameraDir = vec3(0.f, 0.f, 1.f);
+//
 
-
-    shadowCamera.cameraPos = myCamera.cameraPos;//vec3(0.f,1.f,0.f)//vec3(0,-0.5,2.5);
+    shadowCamera.cameraPos = vec3(0.f, 1.f, -2.5f);//myCamera.cameraPos;//vec3(0.f,1.f,0.f)//vec3(0,-0.5,2.5);
     shadowCamera.cameraDir = myCamera.cameraDir; //vec3(0.3f, -1.f, 0.2f);
     shadowCamera.cameraUp = myCamera.cameraUp; //vec3(0.f, 0.f, 1.f);
-    shadowCamera.fovy = glm::radians(100.f);
-    shadowCamera.far = 100.f;
+    shadowCamera.fovy = glm::radians(60.f);
+    shadowCamera.near = 0.01f;
+    shadowCamera.far = 1000.f;
 
     // myCamera = shadowCamera;
 }
@@ -220,6 +221,10 @@ void Update(vec4& cameraPos, mat4& cameraDirection)
              shadowCamera.cameraPos += vec3(shadowCamera.cameraDir *0.05f);
              std::cout << "Pos : " << shadowCamera.cameraPos << std::endl;
            }
+        if(keystate[SDL_SCANCODE_G]){
+            std::cout << "Shifting cams " << '\n';
+            renderShadow = !renderShadow;
+        }
        }
    }
 
@@ -296,9 +301,9 @@ void populateShadowBuffer(){
             float u = 1.0f - v - w;
 
             if (0 <= u && u <= 1 && 0 <= v && v <= 1 && 0 <= w && w <= 1) {
-              tPixel.zinv = v0.zinv * u +  v1.zinv * v + v2.zinv * w;
-              if(tPixel.zinv > shadowBuffer[row][col]){
-                  shadowBuffer[row][col] = tPixel.zinv;
+              tPixel.zinv = v0.zinv * u +  v1.zinv * v + v2.zinv * w; // interpolate the zinv
+              if(tPixel.zinv < shadowBuffer[row][col]){
+                  shadowBuffer[row][col] = tPixel.zinv; // apply the zinv in the buffer
                   tPixel.worldPos = (v0.worldPos * v0.zinv * u
                               + v1.worldPos * v1.zinv * v
                               + v2.worldPos * v2.zinv * w) / tPixel.zinv;
@@ -388,7 +393,7 @@ void Draw(screen *screen)
           float u = 1.0f - v - w;
           // if point p is inside triangles defined by vertices v0, v1, v2
           if (0 <= u && u <= 1 && 0 <= v && v <= 1 && 0 <= w && w <= 1) {
-            tPixel.zinv = v0.zinv * u +  v1.zinv * v + v2.zinv * w;
+            tPixel.zinv = v0.zinv * u +  v1.zinv * v + v2.zinv * w; // interpolate the zinv
             if(tPixel.zinv > depthBuffer[row][col]){
                 depthBuffer[row][col] = tPixel.zinv;
                 tPixel.worldPos = (v0.worldPos * v0.zinv * u
@@ -401,7 +406,7 @@ void Draw(screen *screen)
 
                 vec3 r_vec = shadowCamera.cameraPos - tPixel.worldPos;
 
-                float length_r =0.5+ glm::length(r_vec);
+                float length_r = 0.5+ glm::length(r_vec);
                 float rNorm = glm::dot(glm::normalize(r_vec),normal);
 
                 if (rNorm < 0) rNorm = 0;
@@ -413,13 +418,17 @@ void Draw(screen *screen)
                 bool isLit = getLightDepth(tPixel);
 
 
-                if( !isLit){
-                    pixelColour = vec3(0.0f, 0.0f, 0.0f);
+                if(isLit){
+                    pixelColour = pixelColour/2.0f;
                 }
 
+                if(renderShadow == false){
                  PutPixelSDL(screen, col, row, pixelColour );//vec3(shadowBuffer[row][col])* vec3(0.5) + vec3(0.5)
-                // PutPixelSDL(screen, col, row, vec3(depthBuffer[row][col])* vec3(0.5) + vec3(0.5) );//vec3(shadowBuffer[row][col])* vec3(0.5) + vec3(0.5)
-                // PutPixelSDL(screen, col, row, vec3(shadowBuffer[row][col] * 0.5 + 0.5));//vec3(shadowBuffer[row][col])
+                }
+                else{
+                    PutPixelSDL(screen, col, row, vec3(shadowBuffer[row][col] * 0.5 + 0.5));//vec3(shadowBuffer[row][col])
+
+                }// PutPixelSDL(screen, col, row, vec3(depthBuffer[row][col])* vec3(0.5) + vec3(0.5) );//vec3(shadowBuffer[row][col])* vec3(0.5) + vec3(0.5)
             }
         }
     }
@@ -440,8 +449,6 @@ bool getLightDepth(Pixel p){
 
 
     float shadowDepth = shadowBuffer[y][x];
-
-
 
     return (shadowDepth > (posV4.z));
 }
