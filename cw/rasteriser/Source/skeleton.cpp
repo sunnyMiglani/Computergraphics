@@ -72,7 +72,7 @@ float yaw = 0; // Yaw angle controlling camera rotation around y-axis
 mat4 cameraDirection =  rotation(0);
 vec3 lightPos(0,-0.5,2.5); // (0, -0.5, 2.5)
 vec3 lightPower = 16.0f*vec3( 1, 1, 1 );
-vec3 indirectLightPowerPerArea = 0.5f*vec3( 1, 1, 1 );
+vec3 indirectLightPowerPerArea = 0.7f*vec3( 1, 1, 1 );
 vec3 reflectanceGlobal = vec3(1,1,1);
 vec3 torchPos = vec3(1,1,1);
 mat4 torchDir = cameraDirection;
@@ -129,16 +129,16 @@ mat4 rotation(float yaw){
 
 
 void initScene(){
-    myCamera.cameraPos = vec3(0.f, 0.f, -4.5f);
+    myCamera.cameraPos = vec3(0.f, 0.f, -5.f);
     myCamera.cameraDir = vec3(0.f, 0.f, 1.f);
 //
 
     shadowCamera.cameraPos = vec3(0.f, 1.f, -2.5f);//myCamera.cameraPos;//vec3(0.f,1.f,0.f)//vec3(0,-0.5,2.5);
     shadowCamera.cameraDir = myCamera.cameraDir; //vec3(0.3f, -1.f, 0.2f);
     shadowCamera.cameraUp = myCamera.cameraUp; //vec3(0.f, 0.f, 1.f);
-    shadowCamera.fovy = glm::radians(60.f);
+    shadowCamera.fovy = glm::radians(80.f);
     shadowCamera.near = 0.01f;
-    shadowCamera.far = 1000.f;
+    shadowCamera.far = 100.f;
 
     // myCamera = shadowCamera;
 }
@@ -190,34 +190,34 @@ void Update(vec4& cameraPos, mat4& cameraDirection)
        }
        else {
     //Move Camera
-         if(keystate[SDL_SCANCODE_UP]){
-           myCamera.cameraPos += (myCamera.cameraDir * 0.05f);
-         }
-         if(keystate[SDL_SCANCODE_DOWN]){
-           myCamera.cameraPos -= (myCamera.cameraDir * 0.05f);
-         }
-         if(keystate[SDL_SCANCODE_LEFT]){
-           yaw -= 0.04;
-           cameraDirection = rotation(yaw);
-         }
-         if(keystate[SDL_SCANCODE_RIGHT]){
-           yaw += 0.04;
-           cameraDirection = rotation(yaw);
-         }
+         // if(keystate[SDL_SCANCODE_UP]){
+         //   myCamera.cameraPos += (myCamera.cameraDir * 0.05f);
+         // }
+         // if(keystate[SDL_SCANCODE_DOWN]){
+         //   myCamera.cameraPos -= (myCamera.cameraDir * 0.05f);
+         // }
+         // if(keystate[SDL_SCANCODE_LEFT]){
+         //   yaw -= 0.004;
+         //   shadowCamera.cameraDir = vec3(rotation(yaw) * vec4(shadowCamera.cameraDir, 0));
+         // }
+         // if(keystate[SDL_SCANCODE_RIGHT]){
+         //   yaw += 0.004;
+         //   shadowCamera.cameraDir = vec3(rotation(yaw) * vec4(shadowCamera.cameraDir, 0));
+         // }
          //Move Light Source
-        if(keystate[SDL_SCANCODE_W]){
-            std::cout << "Pos : " << shadowCamera.cameraPos << std::endl;
+        if(keystate[SDL_SCANCODE_UP]){
             shadowCamera.cameraPos += (shadowCamera.cameraUp)  * 0.05f;
+            std::cout << "Pos : " << shadowCamera.cameraPos << std::endl;
            }
-           if(keystate[SDL_SCANCODE_S]){
+           if(keystate[SDL_SCANCODE_DOWN]){
              shadowCamera.cameraPos -= (shadowCamera.cameraUp)  * 0.05f;
              std::cout << "Pos : " << shadowCamera.cameraPos << std::endl;
            }
-           if(keystate[SDL_SCANCODE_A]){
+           if(keystate[SDL_SCANCODE_LEFT]){
              shadowCamera.cameraPos -= vec3(shadowCamera.cameraDir *0.05f);
              std::cout << "Pos : " << shadowCamera.cameraPos << std::endl;
            }
-           if(keystate[SDL_SCANCODE_D]){
+           if(keystate[SDL_SCANCODE_RIGHT]){
              shadowCamera.cameraPos += vec3(shadowCamera.cameraDir *0.05f);
              std::cout << "Pos : " << shadowCamera.cameraPos << std::endl;
            }
@@ -302,7 +302,7 @@ void populateShadowBuffer(){
 
             if (0 <= u && u <= 1 && 0 <= v && v <= 1 && 0 <= w && w <= 1) {
               tPixel.zinv = v0.zinv * u +  v1.zinv * v + v2.zinv * w; // interpolate the zinv
-              if(tPixel.zinv < shadowBuffer[row][col]){
+              if(tPixel.zinv > shadowBuffer[row][col]){
                   shadowBuffer[row][col] = tPixel.zinv; // apply the zinv in the buffer
                   tPixel.worldPos = (v0.worldPos * v0.zinv * u
                               + v1.worldPos * v1.zinv * v
@@ -419,7 +419,7 @@ void Draw(screen *screen)
 
 
                 if(isLit){
-                    pixelColour = pixelColour/2.0f;
+                    pixelColour = pixelColour/5.0f;
                 }
 
                 if(renderShadow == false){
