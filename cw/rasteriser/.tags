@@ -1,0 +1,36 @@
+std	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^namespace std$/;"	namespace	line:17	file:
+operator <<	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^  std::ostream& operator<<(std::ostream& os, glm::vec4& p)$/;"	function	line:19	namespace:std	signature:(std::ostream& os, glm::vec4& p)
+operator <<	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^  std::ostream& operator<<(std::ostream& os, glm::ivec2& p)$/;"	function	line:24	namespace:std	signature:(std::ostream& os, glm::ivec2& p)
+SCREEN_WIDTH	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^#define SCREEN_WIDTH /;"	macro	line:30	file:
+SCREEN_HEIGHT	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^#define SCREEN_HEIGHT /;"	macro	line:31	file:
+FULLSCREEN_MODE	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^#define FULLSCREEN_MODE /;"	macro	line:32	file:
+CHECKING_KEY_STATE	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^#define CHECKING_KEY_STATE /;"	macro	line:33	file:
+FOCAL_LENGTH	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^#define FOCAL_LENGTH /;"	macro	line:34	file:
+Intersection	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^struct Intersection$/;"	struct	line:36	file:
+position	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^  vec4 position;$/;"	member	line:38	struct:Intersection	file:
+distance	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^  float distance;$/;"	member	line:39	struct:Intersection	file:
+triangleIndex	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^  int triangleIndex;$/;"	member	line:40	struct:Intersection	file:
+Pixel	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^struct Pixel$/;"	struct	line:43	file:
+x	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^  int x;$/;"	member	line:45	struct:Pixel	file:
+y	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^  int y;$/;"	member	line:46	struct:Pixel	file:
+zinv	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^  float zinv;$/;"	member	line:47	struct:Pixel	file:
+triangles	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^vector<Triangle> triangles;$/;"	variable	line:73
+R	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^glm::mat4 R;$/;"	variable	line:75
+yaw	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^float yaw = 0; \/\/ Yaw angle controlling camera rotation around y-axis$/;"	variable	line:76
+cameraDirection	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^mat4 cameraDirection =  rotation(0);$/;"	variable	line:77
+depthBuffer	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];$/;"	variable	line:78
+lightPower	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^vec3 lightPower = 1.1f*vec3( 1, 1, 1 );$/;"	variable	line:80
+indirectLightPowerPerArea	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^vec3 indirectLightPowerPerArea = 0.5f*vec3( 1, 1, 1 );$/;"	variable	line:81
+main	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^int main(int argc, char* argv[])$/;"	function	line:87	signature:(int argc, char* argv[])
+Draw	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^void Draw(screen *screen)$/;"	function	line:106	signature:(screen *screen)
+Update	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^void Update(vec4& cameraPos, mat4& cameraDirection)$/;"	function	line:172	signature:(vec4& cameraPos, mat4& cameraDirection)
+VertexShader	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^void VertexShader(vec4 vertices, ivec2& projPos) {$/;"	function	line:227	signature:(vec4 vertices, ivec2& projPos)
+VertexShader_d	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^void VertexShader_d(vec4& vertices, Pixel& p){$/;"	function	line:235	signature:(vec4& vertices, Pixel& p)
+Interpolate	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^void Interpolate( ivec2 a, ivec2 b, vector<ivec2>& result )$/;"	function	line:243	signature:( ivec2 a, ivec2 b, vector<ivec2>& result )
+DrawLineSDL	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^void DrawLineSDL( screen* screen, ivec2 a, ivec2 b, vec3 color ){$/;"	function	line:254	signature:( screen* screen, ivec2 a, ivec2 b, vec3 color )
+DrawPolygonEdges	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^void DrawPolygonEdges(const vector<vec4>& vertices , screen* screen)$/;"	function	line:264	signature:(const vector<vec4>& vertices , screen* screen)
+rotation	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^mat4 rotation(float yaw){$/;"	function	line:280	signature:(float yaw)
+edgeFunction	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^float edgeFunction(ivec2& a, ivec2& b, ivec2& c)$/;"	function	line:288	signature:(ivec2& a, ivec2& b, ivec2& c)
+calculateDepth	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^float calculateDepth(float v0_d,float v1_d,float v2_d, float u, float v, float w){$/;"	function	line:298	signature:(float v0_d,float v1_d,float v2_d, float u, float v, float w)
+BarycentricCoordinates	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^void BarycentricCoordinates(vector<Pixel>& vertexPixels, int y, int x, bool& pointInTriangle, Pixel& pixel){ \/\/ p is a pixel or point in triangle$/;"	function	line:305	signature:(vector<Pixel>& vertexPixels, int y, int x, bool& pointInTriangle, Pixel& pixel)
+Barycentric	/home/sun/Documents/third_year/compGraphics/Computergraphics/cw/rasteriser/Source/skeleton.cpp	/^void Barycentric(Pixel a, Pixel b, Pixel c, ivec2 p, float &u, float &v, float &w)$/;"	function	line:332	signature:(Pixel a, Pixel b, Pixel c, ivec2 p, float &u, float &v, float &w)
