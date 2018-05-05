@@ -44,13 +44,14 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	using glm::vec4;
 
 	// Defines colors:
-	vec3 red(    0.75f, 0.15f, 0.15f );
+	vec3 red(    0.60f, 0.15f, 0.15f ); //0.75
 	vec3 yellow( 0.75f, 0.75f, 0.15f );
-	vec3 green(  0.15f, 0.75f, 0.15f );
+	vec3 green(  0.25f, 0.60f, 0.20f ); //0.75
 	vec3 cyan(   0.15f, 0.75f, 0.75f );
-	vec3 blue(   0.15f, 0.15f, 0.75f );
+	vec3 blue(   0.25f, 0.25f, 0.60f );
 	vec3 purple( 0.75f, 0.15f, 0.75f );
-	vec3 white(  0.75f, 0.75f, 0.75f );
+	// vec3 white(  0.85f, 0.85f, 0.80f );
+	vec3 white(  1.f, 1.f, 0.94f ); //ivory
 
 	triangles.clear();
 	triangles.reserve( 5*2*3 );
@@ -104,40 +105,7 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	H = vec4( 82,165,225,1);
 
 	// Front
-	triangles.push_back( Triangle(E,B,A,red) );
-	triangles.push_back( Triangle(E,F,B,red) );
-
-	// Front
-	triangles.push_back( Triangle(F,D,B,red) );
-	triangles.push_back( Triangle(F,H,D,red) );
-
-	// BACK
-	triangles.push_back( Triangle(H,C,D,red) );
-	triangles.push_back( Triangle(H,G,C,red) );
-
-	// LEFT
-	triangles.push_back( Triangle(G,E,C,red) );
-	triangles.push_back( Triangle(E,A,C,red) );
-
-	// TOP
-	triangles.push_back( Triangle(G,F,E,red) );
-	triangles.push_back( Triangle(G,H,F,red) );
-
-	// ---------------------------------------------------------------------------
-	// Tall block
-
-	A = vec4(423,0,247,1);
-	B = vec4(265,0,296,1);
-	C = vec4(472,0,406,1);
-	D = vec4(314,0,456,1);
-
-	E = vec4(423,330,247,1);
-	F = vec4(265,330,296,1);
-	G = vec4(472,330,406,1);
-	H = vec4(314,330,456,1);
-
-	// Front
-	triangles.push_back( Triangle(E,B,A,blue) );
+	triangles.push_back( Triangle(E,B,A,blue) ); //red
 	triangles.push_back( Triangle(E,F,B,blue) );
 
 	// Front
@@ -155,6 +123,39 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	// TOP
 	triangles.push_back( Triangle(G,F,E,blue) );
 	triangles.push_back( Triangle(G,H,F,blue) );
+
+	// ---------------------------------------------------------------------------
+	// Tall block
+
+	A = vec4(423,0,247,1);
+	B = vec4(265,0,296,1);
+	C = vec4(472,0,406,1);
+	D = vec4(314,0,456,1);
+
+	E = vec4(423,330,247,1);
+	F = vec4(265,330,296,1);
+	G = vec4(472,330,406,1);
+	H = vec4(314,330,456,1);
+
+	// Front
+	triangles.push_back( Triangle(E,B,A,white) ); //blue
+	triangles.push_back( Triangle(E,F,B,white) );
+
+	// Front
+	triangles.push_back( Triangle(F,D,B,white) );
+	triangles.push_back( Triangle(F,H,D,white) );
+
+	// BACK
+	triangles.push_back( Triangle(H,C,D,white) );
+	triangles.push_back( Triangle(H,G,C,white) );
+
+	// LEFT
+	triangles.push_back( Triangle(G,E,C,white) );
+	triangles.push_back( Triangle(E,A,C,white) );
+
+	// TOP
+	triangles.push_back( Triangle(G,F,E,white) );
+	triangles.push_back( Triangle(G,H,F,white) );
 
 
 	// ----------------------------------------------

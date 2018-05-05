@@ -22,9 +22,9 @@ using glm::mat4;
 #define FULLSCREEN_MODE false
 #define CHECKING_KEY_STATE true
 #define SHADOW_RENDER false
-#define NUM_RAYS 2
-#define NUM_LIGHT_RAYS 1
-#define NUM_PHOTONS 100000
+#define NUM_RAYS 25
+#define NUM_LIGHT_RAYS 25
+#define NUM_PHOTONS 300000
 #define NUM_BOUNCES 5
 
 
@@ -377,6 +377,15 @@ vec3 AreaLight(const Intersection& i, vector<Triangle>& triangles, bool& shadowP
 void GenAreaLight(vector<vec4>& lightPositionArr, const vec4& lightPosition){ // TODO: make like positions random
   vec4 tmpLightPosition;
   int index = 0;
+  // float min = -offset_l;
+  // float max = offset_l;
+  // for(int i = 0; i < NUM_LIGHT_RAYS; i++){
+  //   float offset_x = glm::linearRand(min, max);
+  //   float offset_z = glm::linearRand(min, max);
+  //   cout << offset_x << ", " << offset_z << endl;
+  //   lightPositionArr[i] = vec4(lightPosition.x + offset_x, lightPosition.y, lightPosition.z + offset_z, lightPosition.w);
+  //   // cout << "(" << lightPositionArr[i].x << ", " << lightPositionArr[i].y << ", " << lightPositionArr[i].z << ", " << lightPositionArr[i].w << ")" << endl;
+  // }
   for(float j = -offset_l; j <= offset_l; j += interval_l) {
     for(float i = -offset_l; i <= offset_l; i += interval_l) {
       tmpLightPosition.x = lightPosition.x + j;
@@ -498,14 +507,14 @@ vec3 GatherPhotons(vec4 rayPos, Triangle& triangle){
   //GLOBAL ILLUMINATION
   vec3 totalColor = vec3(0.f,0.f,0.f);
   int numNeighbors = 0;
-  float searchRadius = 0.4f;
+  //float searchRadius = 0.4f;
   float searchRadius2 = 0.16f;
   //float searchRadius2 = searchRadius*searchRadius;
   for(size_t p = 0; p < PhotonList.size(); p++){
     Photon& thisPhoton = PhotonList[p];
     float distanceToPhoton = glm::distance2(thisPhoton.position, toVec3(rayPos));
     float alpha = glm::dot(thisPhoton.triangle_normal, toVec3(triangle.normal));
-    if(distanceToPhoton < searchRadius2zca && alpha > 0.95f){
+    if(distanceToPhoton < searchRadius2 && alpha > 0.95f){
       // float dot = glm::dot(toVec3(triangle.v0) - thisPhoton.position, toVec3(triangle.normal));
 			// if (dot == 0.0f){
       //   totalColor += thisPhoton.color*(searchRadius-distanceToPhoton);
@@ -516,8 +525,8 @@ vec3 GatherPhotons(vec4 rayPos, Triangle& triangle){
       // }
     }
   }
-  vec3 avgColor = vec3(totalColor)/(2.4f*numNeighbors); //2.4f darken scene
-  return glm::clamp(avgColor*1.5f, vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f)); //1.5f lighten sceen
+  vec3 avgColor = vec3(totalColor)/(numNeighbors); //2.4f darken scene
+  return glm::clamp(avgColor, vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f)); //1.5f lighten sceen
 }
 
 vec3 toVec3(vec4 vector){
