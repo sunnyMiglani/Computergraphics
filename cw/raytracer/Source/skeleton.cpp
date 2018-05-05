@@ -23,7 +23,7 @@ using glm::mat4;
 #define CHECKING_KEY_STATE true
 #define SHADOW_RENDER false
 #define NUM_RAYS 25
-#define NUM_LIGHT_RAYS 25
+#define NUM_LIGHT_RAYS 64
 #define NUM_PHOTONS 300000
 #define NUM_BOUNCES 5
 
@@ -377,25 +377,23 @@ vec3 AreaLight(const Intersection& i, vector<Triangle>& triangles, bool& shadowP
 void GenAreaLight(vector<vec4>& lightPositionArr, const vec4& lightPosition){ // TODO: make like positions random
   vec4 tmpLightPosition;
   int index = 0;
-  // float min = -offset_l;
-  // float max = offset_l;
-  // for(int i = 0; i < NUM_LIGHT_RAYS; i++){
-  //   float offset_x = glm::linearRand(min, max);
-  //   float offset_z = glm::linearRand(min, max);
-  //   cout << offset_x << ", " << offset_z << endl;
-  //   lightPositionArr[i] = vec4(lightPosition.x + offset_x, lightPosition.y, lightPosition.z + offset_z, lightPosition.w);
-  //   // cout << "(" << lightPositionArr[i].x << ", " << lightPositionArr[i].y << ", " << lightPositionArr[i].z << ", " << lightPositionArr[i].w << ")" << endl;
-  // }
-  for(float j = -offset_l; j <= offset_l; j += interval_l) {
-    for(float i = -offset_l; i <= offset_l; i += interval_l) {
-      tmpLightPosition.x = lightPosition.x + j;
-      tmpLightPosition.y = lightPosition.y;
-      tmpLightPosition.z = lightPosition.z + i;
-      tmpLightPosition.w = lightPosition.w;
-      lightPositionArr[index] = tmpLightPosition;
-      index += 1;
-    }
+  float min = -0.33;
+  float max = 0.33;
+  for(int i = 0; i < NUM_LIGHT_RAYS; i++){ //Can also randomize light positions
+    float offset_x = glm::linearRand(min, max);
+    float offset_z = glm::linearRand(min, max);
+    lightPositionArr[i] = vec4(lightPosition.x + offset_x, lightPosition.y, lightPosition.z + offset_z, lightPosition.w);
   }
+  // for(float j = -offset_l; j <= offset_l; j += interval_l) {
+  //   for(float i = -offset_l; i <= offset_l; i += interval_l) {
+  //     tmpLightPosition.x = lightPosition.x + j;
+  //     tmpLightPosition.y = lightPosition.y;
+  //     tmpLightPosition.z = lightPosition.z + i;
+  //     tmpLightPosition.w = lightPosition.w;
+  //     lightPositionArr[index] = tmpLightPosition;
+  //     index += 1;
+  //   }
+  // }
   //std::cout << "(" << lightPositionArr[idx].x << ", " << lightPositionArr[idx].y << ", " << lightPositionArr[idx].z << ", " << lightPositionArr[idx].w << ")" << std::endl;
 }
 
