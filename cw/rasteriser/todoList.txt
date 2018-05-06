@@ -1,0 +1,4 @@
+1. Rasterizer 50%
+2. Rasterizer with Torch
+3. Shadow Buffer
+4. A-A activated? 
