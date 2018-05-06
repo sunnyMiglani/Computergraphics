@@ -636,7 +636,7 @@ void Draw(screen *screen)
                 //             + v1.viewPos * v1.zinv * v
                 //             + v2.viewPos * v2.zinv * w) / tPixel.zinv;
 
-                vec3 r_vec = lightPos - tPixel.worldPos;
+                vec3 r_vec = shadowCamera.cameraPos - tPixel.worldPos;
 
                 float length_r = 0.5+ glm::length(r_vec);
                 float rNorm = glm::dot(glm::normalize(r_vec),normal);
@@ -650,9 +650,9 @@ void Draw(screen *screen)
                 bool isLit = getLightDepth(tPixel);
 
 
-                // if(isLit){
-                //     pixelColour = pixelColour/5.0f;
-                // }
+                if(isLit){
+                    pixelColour = pixelColour/5.0f;
+                }
 
                 if(renderShadow == false){
                     screenBuffer[col][row] = pixelColour;
