@@ -17,8 +17,8 @@ using glm::vec4;
 using glm::mat4;
 
 
-#define SCREEN_WIDTH 480
-#define SCREEN_HEIGHT 480
+#define SCREEN_WIDTH 720
+#define SCREEN_HEIGHT 720
 #define FULLSCREEN_MODE false
 #define CHECKING_KEY_STATE true
 #define SHADOW_RENDER false
@@ -523,7 +523,8 @@ vec3 GatherPhotons(vec4 rayPos, Triangle& triangle){
       // }
     }
   }
-  vec3 avgColor = vec3(totalColor)/(numNeighbors); //2.4f darken scene
+  float numNeighbors_f = (float)numNeighbors;
+  vec3 avgColor = vec3((totalColor)/(numNeighbors_f)); //2.4f darken scene
   return glm::clamp(avgColor, vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f)); //1.5f lighten sceen
 }
 
