@@ -98,8 +98,8 @@ float QUALITY[] = { 1.5f,2.0f, 2.0f, 2.0f, 2.0f, 4.0f, 8.0f };
 struct Camera {
 
 
-    float fovy = glm::radians(60.f);
-    float aspectRatio = (float)(SCREEN_WIDTH/SCREEN_HEIGHT);
+    float fovy;
+    float aspectRatio;
     float near = 0.01f;
     float far = 1000.f;
     vec3 cameraPos = vec3(0);
@@ -142,12 +142,17 @@ mat4 rotation(float yaw){
 void initScene(){
     myCamera.cameraPos = vec3(0.f, 0.f, -5.f);
     myCamera.cameraDir = vec3(0.f, 0.f, 1.f);
+    myCamera.fovy = glm::radians(60.f);
+    myCamera.aspectRatio = (float)(SCREEN_WIDTH/SCREEN_HEIGHT);
+    myCamera.near = 0.01f;
+    myCamera.far = 1000.f;
 //
 
     shadowCamera.cameraPos = vec3(0.f, 1.f, -2.5f);//myCamera.cameraPos;//vec3(0.f,1.f,0.f)//vec3(0,-0.5,2.5);
     shadowCamera.cameraDir = myCamera.cameraDir; //vec3(0.3f, -1.f, 0.2f);
     shadowCamera.cameraUp = myCamera.cameraUp; //vec3(0.f, 0.f, 1.f);
     shadowCamera.fovy = glm::radians(80.f);
+    shadowCamera.aspectRatio = (float)(SCREEN_WIDTH/SCREEN_HEIGHT);
     shadowCamera.near = 0.01f;
     shadowCamera.far = 100.f;
 
