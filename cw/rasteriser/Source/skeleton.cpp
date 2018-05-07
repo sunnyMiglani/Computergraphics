@@ -98,10 +98,10 @@ float QUALITY[] = { 1.5f,2.0f, 2.0f, 2.0f, 2.0f, 4.0f, 8.0f };
 struct Camera {
 
 
-    float fovy;
-    float aspectRatio;
-    float near = 0.01f;
-    float far = 1000.f;
+    static float fovy;
+    static float aspectRatio;
+    static float near = 0.01f;
+    static float far = 1000.f;
     vec3 cameraPos = vec3(0);
     vec3 cameraDir = vec3(0, 0, -1);
     vec3 cameraUp = vec3(0,1,0);
