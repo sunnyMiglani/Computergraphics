@@ -251,10 +251,6 @@ void Update(vec4& cameraPos, mat4& cameraDirection)
             std::cout << "Shifting cams " << '\n';
             renderShadow = !renderShadow;
         }
-        if(keystate[SDL_SCANCODE_B]){
-            std::cout << "Removed AntiAliasing" << '\n';
-            antiAlias != antiAlias;
-        }
        }
    }
 
@@ -344,197 +340,7 @@ void populateShadowBuffer(){
           }
       }
 
-void applyAntiAliasing(){
 
-    for(int row = 0; row < SCREEN_HEIGHT; row++){ // looping through the square
-      for(int col = 0; col < SCREEN_WIDTH; col++){
-        vec3 colourCentre = screenBuffer[col][row];
-        float lumaCentre = rgb2luma(colourCentre);
-        float lumaUp = 0;
-        float lumaDown = 0;
-        float lumaLeft = 0;
-        float lumaRight = 0;
-
-        float currentMin = 1000000;
-        float currentMax = -100000;
-
-        if(row-1 >= 0){
-            lumaUp = rgb2luma(screenBuffer[col][row-1]);
-            currentMin = (currentMin < lumaUp) ? lumaUp:currentMin;
-            currentMax = (currentMax > lumaUp) ? lumaUp:currentMax;
-        }
-        // else { continue; }
-        if(row+1 < SCREEN_HEIGHT ){
-            lumaDown = rgb2luma(screenBuffer[col][row+1]);
-            currentMin = (currentMin < lumaDown) ? lumaDown:currentMin;
-            currentMax = (currentMax > lumaDown) ? lumaDown:currentMax;
-        }
-        // else { continue; }
-        if(col-1 >= 0){
-            lumaLeft = rgb2luma(screenBuffer[col-1][row]);
-            currentMin = (currentMin < lumaLeft) ? lumaLeft:currentMin;
-            currentMax = (currentMax > lumaLeft) ? lumaLeft:currentMax;
-        }
-        // else { continue; }
-        if(col+1 < SCREEN_WIDTH){
-            lumaRight = rgb2luma(screenBuffer[col+1][row]);
-            currentMin = (currentMin < lumaRight) ? lumaRight:currentMin;
-            currentMax = (currentMax > lumaRight) ? lumaRight:currentMax;
-        }
-        // else { continue; }
-        float lumaRange = currentMax - currentMin;
-
-        if(lumaRange < max(EDGE_THRESHOLD_MIN, currentMax * EDGE_THRESHOLD_MAX)){
-            continue;
-        }
-        std::cout << "Made it past the contiues " << '\n';
-
-        float lumaDownLeft = rgb2luma(screenBuffer[col-1][row-1]);
-        float lumaUpRight = rgb2luma(screenBuffer[col+1][row+1]);
-        float lumaUpLeft = rgb2luma(screenBuffer[col-1][row+1]);
-        float lumaDownRight = rgb2luma(screenBuffer[col][row-1]);
-
-
-        float lumaDownUp = lumaDown + lumaUp;
-        float lumaLeftRight = lumaLeft + lumaRight;
-
-        float lumaLeftCorners = lumaDownLeft + lumaUpLeft;
-        float lumaDownCorners = lumaDownLeft + lumaDownRight;
-        float lumaRightCorners = lumaDownRight + lumaUpRight;
-        float lumaUpCorners = lumaUpRight + lumaUpLeft;
-
-        float edgeHorizontal =  abs(-2.0 * lumaLeft + lumaLeftCorners)  + abs(-2.0 * lumaCentre + lumaDownUp ) * 2.0    + abs(-2.0 * lumaRight + lumaRightCorners);
-        float edgeVertical =    abs(-2.0 * lumaUp + lumaUpCorners)      + abs(-2.0 * lumaCentre + lumaLeftRight) * 2.0  + abs(-2.0 * lumaDown + lumaDownCorners);
-
-        bool isHorizontal = (edgeHorizontal >= edgeVertical);
-
-
-        float luma1 = isHorizontal ? lumaDown : lumaLeft;
-        float luma2 = isHorizontal ? lumaUp : lumaRight;
-
-        float gradient1 = luma1 - lumaCentre;
-        float gradient2 = luma2 - lumaCentre;
-
-        bool is1Steepest = abs(gradient1) >= abs(gradient2);
-
-        float gradientScaled = 0.25*max(abs(gradient1),abs(gradient2));
-
-
-        float stepLength = isHorizontal ? SCREEN_WIDTH : SCREEN_HEIGHT;
-
-        float lumaLocalAverage = 0.0;
-
-        if(is1Steepest){
-            stepLength = - stepLength;
-            lumaLocalAverage = 0.5*(luma1 + lumaCentre);
-        } else {
-            lumaLocalAverage = 0.5*(luma2 + lumaCentre);
-        }
-
-        vec2 currentUv = vec2(col,row);
-        if(isHorizontal){
-            currentUv.y += stepLength * 0.5;
-        } else {
-            currentUv.x += stepLength * 0.5;
-        }
-
-        vec2 offset = isHorizontal ? vec2(SCREEN_HEIGHT,0.0) : vec2(0.0,SCREEN_WIDTH);
-        // Compute UVs to explore on each side of the edge, orthogonally. The QUALITY allows us to step faster.
-        vec2 uv1 = currentUv - offset;
-        vec2 uv2 = currentUv + offset;
-
-        // Read the lumas at both current extremities of the exploration segment, and compute the delta wrt to the local average luma.
-        float lumaEnd1 = rgb2luma(screenBuffer[int(uv1.y)][int(uv1.x)]);
-        float lumaEnd2 = rgb2luma(screenBuffer[int(uv2.y)][int(uv2.x)]);
-        lumaEnd1 -= lumaLocalAverage;
-        lumaEnd2 -= lumaLocalAverage;
-
-        // If the luma deltas at the current extremities are larger than the local gradient, we have reached the side of the edge.
-        bool reached1 = abs(lumaEnd1) >= gradientScaled;
-        bool reached2 = abs(lumaEnd2) >= gradientScaled;
-        bool reachedBoth = reached1 && reached2;
-
-        // If the side is not reached, we continue to explore in this direction.
-        if(!reached1){
-            uv1 -= offset;
-        }
-        if(!reached2){
-            uv2 += offset;
-        }
-        if(!reachedBoth){
-
-        for(int i = 2; i < ITERATIONS; i++){
-            // If needed, read luma in 1st direction, compute delta.
-            if(!reached1){
-                lumaEnd1 = rgb2luma(screenBuffer[int(uv1.y)][int(uv1.x)]);
-                lumaEnd1 = lumaEnd1 - lumaLocalAverage;
-            }
-            // If needed, read luma in opposite direction, compute delta.
-            if(!reached2){
-                lumaEnd2 = rgb2luma(screenBuffer[int(uv2.y)][int(uv2.x)]);
-                lumaEnd2 = lumaEnd2 - lumaLocalAverage;
-            }
-            // If the luma deltas at the current extremities is larger than the local gradient, we have reached the side of the edge.
-            reached1 = abs(lumaEnd1) >= gradientScaled;
-            reached2 = abs(lumaEnd2) >= gradientScaled;
-            reachedBoth = reached1 && reached2;
-
-            // If the side is not reached, we continue to explore in this direction, with a variable quality.
-            if(!reached1){
-                uv1 -= offset;
-            }
-            if(!reached2){
-                uv2 += offset;
-            }
-
-            // If both sides have been reached, stop the exploration.
-            if(reachedBoth){ break;}
-            }
-        }
-        // Compute the distances to each extremity of the edge.
-        float distance1 = isHorizontal ? (screenBuffer[col][row].x - uv1.x) : (screenBuffer[col][row].y - uv1.y);
-        float distance2 = isHorizontal ? (uv2.x - screenBuffer[col][row].x) : (uv2.y - screenBuffer[col][row].y);
-
-        // In which direction is the extremity of the edge closer ?
-        bool isDirection1 = distance1 < distance2;
-        float distanceFinal = min(distance1, distance2);
-
-        // Length of the edge.
-        float edgeThickness = (distance1 + distance2);
-
-        // UV offset: read in the direction of the closest side of the edge.
-        float pixelOffset = - distanceFinal / edgeThickness + 0.5;
-
-        bool isLumaCentreSmaller = lumaCentre < lumaLocalAverage;
-
-        bool correctVariation = ((isDirection1 ? lumaEnd1 : lumaEnd2) < 0.0) != isLumaCentreSmaller;
-
-        float finalOffset = correctVariation ? pixelOffset : 0.0;
-        // Sub-pixel shifting
-        // Full weighted average of the luma over the 3x3 neighborhood.
-        float lumaAverage = (1.0/12.0) * (2.0 * (lumaDownUp + lumaLeftRight) + lumaLeftCorners + lumaRightCorners);
-        // Ratio of the delta between the global average and the Centre luma, over the luma range in the 3x3 neighborhood.
-        float subPixelOffset1 = glm::clamp(abs(lumaAverage - lumaCentre)/lumaRange,0.0f,1.0f);
-        float subPixelOffset2 = (-2.0 * subPixelOffset1 + 3.0) * subPixelOffset1 * subPixelOffset1;
-        // Compute a sub-pixel offset based on this delta.
-        float subPixelOffsetFinal = subPixelOffset2 * subPixelOffset2 * SUBPIXEL_QUALITY;
-
-        // Pick the biggest of the two offsets.
-        finalOffset = max(finalOffset,subPixelOffsetFinal);
-        // Compute the final UV coordinates.
-        vec2 finalUv = vec2(col,row);
-        if(isHorizontal){
-            finalUv.y += finalOffset * stepLength;
-        } else {
-            finalUv.x += finalOffset * stepLength;
-        }
-
-        // Read the color at the new UV coordinates, and use it.
-        vec3 finalColor = screenBuffer[int(finalUv.y)][int(finalUv.x)];//texture(screenTexture,finalUv).rgb;
-        screenBuffer[col][row] = finalColor;
-    }
-}
-}
 
 
 
@@ -668,9 +474,6 @@ void Draw(screen *screen)
     }
 }
 }
-    if(antiAlias) {
-        applyAntiAliasing();
-    }
     putAllPixels(screen);
 }
 
