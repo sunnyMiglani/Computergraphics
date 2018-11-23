@@ -1,0 +1,13 @@
+1. Smoke and lighter
+2. Disco Ball
+3. Torch with smaller radius than vision 
+4. Light in the floor 
+
+
+
+======================
+References : 
+
+
+https://sapphirenation.net/anti-aliasing-comparison-performance-quality/
+Types of AA 
